@@ -9,7 +9,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { useToast } from '../components/ui/toaster'
 
-import { authApi } from '../lib/api'
+import { authApi } from '../lib/api.ts'
 import { useAuthStore } from '../store/authStore'
 
 const Register: React.FC = () => {

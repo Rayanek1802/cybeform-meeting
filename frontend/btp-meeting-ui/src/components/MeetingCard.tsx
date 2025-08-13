@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
 
-import { type Meeting } from '../lib/api'
+import { type Meeting } from '../lib/api.ts'
 import { formatDate, formatDuration } from '../lib/utils'
 
 interface MeetingCardProps {

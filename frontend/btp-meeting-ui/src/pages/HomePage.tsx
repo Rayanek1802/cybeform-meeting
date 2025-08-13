@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
 
-import { projectsApi, type Project } from '../lib/api'
+import { projectsApi, type Project } from '../lib/api.ts'
 import { useProjectActions, useUIActions } from '../store/useStore'
 import { formatDate } from '../lib/utils'
 import Layout from '../components/Layout'
