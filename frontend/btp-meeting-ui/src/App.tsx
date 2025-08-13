@@ -1,13 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster, ToasterProvider } from 'components/ui/toaster'
-import { useAuthStore } from 'store/authStore'
-import HomePage from 'pages/HomePage'
-import ProjectDashboard from 'pages/ProjectDashboard'
-import NewMeeting from 'pages/NewMeeting'
-import MeetingDetail from 'pages/MeetingDetail'
-import Login from 'pages/Login'
-import Register from 'pages/Register'
-import NotFound from 'pages/NotFound'
+import { Toaster, ToasterProvider } from './components/ui/toaster'
+import { useAuthStore } from './store/authStore'
+import HomePage from './pages/HomePage'
+import ProjectDashboard from './pages/ProjectDashboard'
+import NewMeeting from './pages/NewMeeting'
+import MeetingDetail from './pages/MeetingDetail'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import NotFound from './pages/NotFound'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
