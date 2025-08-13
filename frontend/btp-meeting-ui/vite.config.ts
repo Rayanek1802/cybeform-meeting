@@ -13,5 +13,14 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '.railway.app',
+      '.up.railway.app',
+      'cybeform-meeting-production.up.railway.app',
+      '.onrender.com',
+      '.vercel.app'
+    ]
   },
 })
