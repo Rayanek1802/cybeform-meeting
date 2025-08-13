@@ -1,20 +1,13 @@
 services:
   - type: web
     name: cybeform-frontend
-    runtime: static
     plan: free
-    buildCommand: "npm install && npm run build"
-    staticPublishPath: ./dist
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: ./
     envVars:
       - key: VITE_API_BASE_URL
         value: https://cybeform-backend.onrender.com
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: SAMEORIGIN
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: X-XSS-Protection
-        value: 1; mode=block
+      - key: NODE_ENV
+        value: production
+      - key: CI
+        value: false

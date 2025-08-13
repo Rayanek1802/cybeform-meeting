@@ -1,0 +1,32 @@
+# Production build for Render
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies with legacy peer deps flag
+RUN npm install --legacy-peer-deps
+
+# Copy all source files
+COPY . .
+
+# List contents to debug
+RUN echo "=== Source structure ===" && find src -type f -name "*.ts" -o -name "*.tsx" | head -20
+
+# Set build environment
+ENV NODE_ENV=production
+ENV CI=false
+
+# Build with increased memory
+RUN npm run build
+
+# Install serve
+RUN npm install -g serve
+
+# Expose port for Render
+EXPOSE $PORT
+
+# Start command
+CMD serve -s dist -l $PORT
