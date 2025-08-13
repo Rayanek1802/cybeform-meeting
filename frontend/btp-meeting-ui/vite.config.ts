@@ -19,6 +19,13 @@ export default defineConfig({
         },
       },
     },
+    // Force resolve all paths during build
+    commonjsOptions: {
+      include: [/node_modules/]
+    }
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom']
   },
   server: {
     host: '0.0.0.0',
