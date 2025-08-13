@@ -1,0 +1,47 @@
+FROM python:3.11-slim
+
+# Install only essential system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements and create a lighter version
+COPY requirements.txt requirements-full.txt
+
+# Create lighter requirements for Render
+RUN echo "fastapi==0.104.1" > requirements.txt && \
+    echo "uvicorn[standard]==0.24.0" >> requirements.txt && \
+    echo "pydantic==2.5.0" >> requirements.txt && \
+    echo "pydantic-settings==2.1.0" >> requirements.txt && \
+    echo "python-multipart==0.0.6" >> requirements.txt && \
+    echo "sqlalchemy==2.0.23" >> requirements.txt && \
+    echo "psycopg2-binary==2.9.9" >> requirements.txt && \
+    echo "python-jose[cryptography]==3.3.0" >> requirements.txt && \
+    echo "passlib[bcrypt]==1.7.4" >> requirements.txt && \
+    echo "cloudinary==1.36.0" >> requirements.txt && \
+    echo "python-dotenv==1.0.0" >> requirements.txt && \
+    echo "gunicorn==21.2.0" >> requirements.txt && \
+    echo "requests==2.31.0" >> requirements.txt && \
+    echo "aiofiles==23.2.1" >> requirements.txt
+
+# Install only lightweight dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create data directory for temporary files
+RUN mkdir -p /tmp/data
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Use only 1 worker for 512MB RAM limit
+CMD ["gunicorn", "app.main_render:app", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "--timeout", "120"]
