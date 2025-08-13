@@ -18,9 +18,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import { projectsApi, type Project } from '@/lib/api'
+import { projectsApi, type Project } from '../lib/api'
 import { useProjectActions, useUIActions } from '@/store/useStore'
-import { formatDate } from '@/lib/utils'
+import { formatDate } from '../lib/utils'
 import Layout from '@/components/Layout'
 import EditProjectDialog from '@/components/EditProjectDialog'
 import DeleteProjectDialog from '@/components/DeleteProjectDialog'

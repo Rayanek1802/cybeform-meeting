@@ -3,7 +3,7 @@ import { Mic, Square, Play, Pause, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
-import { formatDuration } from '@/lib/utils'
+import { formatDuration } from '../lib/utils'
 
 interface AudioRecorderProps {
   onRecordingComplete: (audioBlob: Blob, duration: number) => void
