@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { Project, Meeting } from '../lib/api.ts'
+import { Project, Meeting } from '../lib/api'
 
 interface AppState {
   // Projects

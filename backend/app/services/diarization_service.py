@@ -192,3 +192,4 @@ class DiarizationService:
             "total_speakers": len(speaker_stats),
             "total_duration": round(total_duration, 2)
         }
+

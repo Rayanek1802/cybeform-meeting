@@ -102,3 +102,4 @@ def test_generate_report():
         
         # Cleanup
         os.unlink(tmp.name)
+

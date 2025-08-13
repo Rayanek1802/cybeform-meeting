@@ -106,3 +106,4 @@ async def get_me(current_user: Annotated[UserResponse, Depends(get_current_user)
 async def logout():
     """Logout user (client-side token removal)"""
     return {"message": "Successfully logged out"}
+

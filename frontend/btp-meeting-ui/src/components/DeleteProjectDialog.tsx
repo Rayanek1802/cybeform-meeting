@@ -8,7 +8,7 @@ import {
 } from '../components/ui/dialog'
 import { Button } from '../components/ui/button'
 import { AlertTriangle } from 'lucide-react'
-import { type Project } from '../lib/api.ts'
+import { type Project } from '../lib/api'
 
 interface DeleteProjectDialogProps {
   project: Project | null

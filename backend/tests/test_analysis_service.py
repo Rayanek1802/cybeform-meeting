@@ -73,3 +73,4 @@ def test_format_transcript_for_analysis():
     
     assert "[00:00] SPEAKER_0: Bonjour" in formatted
     assert "[01:05] SPEAKER_1: Comment allez-vous?" in formatted
+

@@ -156,3 +156,4 @@ class AuthService:
             created_at=datetime.fromisoformat(user_data["created_at"]),
             is_active=user_data["is_active"]
         )
+

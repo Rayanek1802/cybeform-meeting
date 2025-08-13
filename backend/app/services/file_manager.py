@@ -82,3 +82,4 @@ class FileManager:
         meeting_dir = self.get_meeting_path(project_id, meeting_id)
         os.makedirs(meeting_dir, exist_ok=True)
         return meeting_dir
+
