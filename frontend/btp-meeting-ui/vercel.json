@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm install --legacy-peer-deps && npm run build",
+  "framework": "vite",
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_API_BASE_URL": ""
+  }
+}
+
