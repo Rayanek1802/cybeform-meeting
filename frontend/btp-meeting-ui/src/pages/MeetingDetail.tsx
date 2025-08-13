@@ -3,17 +3,17 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, RefreshCw, Clock, Users, FileText, Search } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { useToast } from '@/components/ui/toaster'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
+import { Progress } from '../components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Input } from '../components/ui/input'
+import { useToast } from '../components/ui/toaster'
 
 import { meetingsApi, projectsApi, type Meeting, type ProcessingStatus, type MeetingPreview } from '../lib/api'
 import { formatDate, formatDuration } from '../lib/utils'
-import Layout from '@/components/Layout'
+import Layout from '../components/Layout'
 
 const MeetingDetail: React.FC = () => {
   const { projectId, meetingId } = useParams<{ projectId: string; meetingId: string }>()

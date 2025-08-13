@@ -3,27 +3,27 @@ import { Link } from 'react-router-dom'
 import { Plus, FolderOpen, Calendar, Users, Building2, CheckCircle, Clock, AlertCircle, MoreVertical, Edit3, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/components/ui/toaster'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Badge } from '../components/ui/badge'
+import { useToast } from '../components/ui/toaster'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '../components/ui/dropdown-menu'
 
 import { projectsApi, type Project } from '../lib/api'
-import { useProjectActions, useUIActions } from '@/store/useStore'
+import { useProjectActions, useUIActions } from '../store/useStore'
 import { formatDate } from '../lib/utils'
-import Layout from '@/components/Layout'
-import EditProjectDialog from '@/components/EditProjectDialog'
-import DeleteProjectDialog from '@/components/DeleteProjectDialog'
+import Layout from '../components/Layout'
+import EditProjectDialog from '../components/EditProjectDialog'
+import DeleteProjectDialog from '../components/DeleteProjectDialog'
 
 const HomePage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([])

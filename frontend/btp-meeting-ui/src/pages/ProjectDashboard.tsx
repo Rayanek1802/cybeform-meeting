@@ -3,18 +3,18 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Plus, ArrowLeft, Calendar, Users, Clock, Download, Eye, MoreVertical, Edit3, Trash2, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/components/ui/toaster'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
+import { useToast } from '../components/ui/toaster'
 
 import { projectsApi, meetingsApi, type Project, type Meeting } from '../lib/api'
-import { useProjectActions, useMeetingActions, useUIActions, useMeetings } from '@/store/useStore'
+import { useProjectActions, useMeetingActions, useUIActions, useMeetings } from '../store/useStore'
 import { formatDate, formatDuration } from '../lib/utils'
-import { DeleteMeetingDialog } from '@/components/DeleteMeetingDialog'
-import EditMeetingDialog from '@/components/EditMeetingDialog'
-import Layout from '@/components/Layout'
-import MeetingCard from '@/components/MeetingCard'
+import { DeleteMeetingDialog } from '../components/DeleteMeetingDialog'
+import EditMeetingDialog from '../components/EditMeetingDialog'
+import Layout from '../components/Layout'
+import MeetingCard from '../components/MeetingCard'
 
 const ProjectDashboard: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>()

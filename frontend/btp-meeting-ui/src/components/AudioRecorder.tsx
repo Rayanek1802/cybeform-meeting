@@ -1,8 +1,8 @@
 import React from 'react'
 import { Mic, Square, Play, Pause, RotateCcw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { Button } from '../components/ui/button'
+import { Card, CardContent } from '../components/ui/card'
+import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { formatDuration } from '../lib/utils'
 
 interface AudioRecorderProps {

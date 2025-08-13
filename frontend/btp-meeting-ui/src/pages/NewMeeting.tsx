@@ -3,20 +3,20 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Mic, Upload, Play } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/ui/toaster'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Textarea } from '../components/ui/textarea'
+import { useToast } from '../components/ui/toaster'
 
-import AudioRecorder from '@/components/AudioRecorder'
-import FileUpload from '@/components/FileUpload'
+import AudioRecorder from '../components/AudioRecorder'
+import FileUpload from '../components/FileUpload'
 
 import { meetingsApi } from '../lib/api'
-import { useMeetingActions } from '@/store/useStore'
-import Layout from '@/components/Layout'
+import { useMeetingActions } from '../store/useStore'
+import Layout from '../components/Layout'
 
 const NewMeeting: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>()

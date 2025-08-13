@@ -3,14 +3,14 @@ import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/components/ui/toaster'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { useToast } from '../components/ui/toaster'
 
 import { authApi } from '../lib/api'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore } from '../store/authStore'
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('')

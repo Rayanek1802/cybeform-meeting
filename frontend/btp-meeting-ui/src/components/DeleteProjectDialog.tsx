@@ -5,8 +5,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+} from '../components/ui/dialog'
+import { Button } from '../components/ui/button'
 import { AlertTriangle } from 'lucide-react'
 import { type Project } from '../lib/api'
 

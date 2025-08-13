@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, File, AlertCircle, CheckCircle, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { Button } from '../components/ui/button'
+import { Card, CardContent } from '../components/ui/card'
+import { Progress } from '../components/ui/progress'
 import { formatFileSize, isValidAudioFile } from '../lib/utils'
 
 interface FileUploadProps {
