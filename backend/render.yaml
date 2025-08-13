@@ -1,0 +1,35 @@
+databases:
+  - name: cybeform-db
+    plan: free
+    databaseName: cybeform
+    user: cybeform
+
+services:
+  - type: web
+    name: cybeform-backend
+    plan: free
+    dockerfilePath: ./Dockerfile.production
+    dockerContext: ./backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cybeform-db
+          property: connectionString
+      - key: PYTHONPATH
+        value: /app
+      - key: DATA_PATH
+        value: /tmp/data
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: HUGGINGFACE_TOKEN
+        sync: false
+      - key: PORT
+        value: 8000
