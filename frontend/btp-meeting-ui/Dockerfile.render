@@ -12,11 +12,14 @@ RUN npm ci --legacy-peer-deps --only=production=false
 # Copy all source files
 COPY . .
 
+# Debug: Check file structure
+RUN ls -la && ls -la src/ && ls -la src/lib/
+
 # Set build environment
 ENV NODE_ENV=production
 ENV CI=false
 
-# Build with increased memory
+# Build with increased memory and debug
 RUN NODE_OPTIONS='--max-old-space-size=4096' npm run build
 
 # Install serve globally
