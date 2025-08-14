@@ -71,7 +71,7 @@ app = FastAPI(
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://cybeform-frontend.onrender.com"  # Your Render frontend URL
+    "https://cybeform-meeting-12.onrender.com"  # Your actual Render frontend URL
 ]
 
 app.add_middleware(
