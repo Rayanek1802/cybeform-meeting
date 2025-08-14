@@ -14,7 +14,7 @@ import { useToast } from '../components/ui/toaster'
 import AudioRecorder from '../components/AudioRecorder'
 import FileUpload from '../components/FileUpload'
 
-import { meetingsApi } from '../lib/api'
+import { meetingsApi } from '../lib'
 import { useMeetingActions } from '../store/useStore'
 import Layout from '../components/Layout'
 
