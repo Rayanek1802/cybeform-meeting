@@ -94,7 +94,10 @@ async def health_check():
             "service": "CybeMeeting API Production",
             "version": "1.0.0",
             "database": "connected",
-            "storage": "cloudinary"
+            "storage": "cloudinary",
+            "openai_configured": settings.is_openai_available,
+            "openai_key_present": bool(settings.OPENAI_API_KEY),
+            "model_name": settings.MODEL_NAME if hasattr(settings, 'MODEL_NAME') else "not_set"
         }
     )
 
