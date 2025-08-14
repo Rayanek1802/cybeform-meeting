@@ -267,7 +267,7 @@ class TranscriptionService:
             })
         
         return {
-            "text": "[Transcription automatique non disponible - Veuillez configurer OpenAI API ou vérifier le service de transcription]",
+            "text": "[Transcription automatique non disponible - Vérifier le service de transcription]",
             "language": "fr",
             "segments": segments,
             "service": "fallback"

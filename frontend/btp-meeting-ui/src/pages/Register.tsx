@@ -100,8 +100,12 @@ const Register: React.FC = () => {
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-4 text-center pb-6">
             {/* Logo */}
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-[#4F46E5] to-[#C026D3] rounded-2xl flex items-center justify-center">
-              <span className="text-white font-bold text-xl">CF</span>
+            <div className="mx-auto w-16 h-16 rounded-2xl overflow-hidden">
+              <img 
+                src="/Design sans titre(2).png" 
+                alt="Logo Cybeform" 
+                className="w-full h-full object-cover rounded-2xl"
+              />
             </div>
             
             <div>

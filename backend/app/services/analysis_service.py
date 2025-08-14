@@ -509,7 +509,7 @@ Génère maintenant le JSON le plus exhaustif possible:"""
                 "duration": meeting_metadata.get("duration", 0),
                 "participantsDetected": speakers
             },
-            "objectifs": ["[Analyse IA non disponible - Veuillez configurer OpenAI API]"],
+            "objectifs": ["[Analyse IA non disponible - Quota dépassé]"],
             "problemes": [],
             "decisions": [],
             "actions": [
