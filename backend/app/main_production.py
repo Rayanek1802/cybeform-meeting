@@ -88,16 +88,21 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    import os
     return JSONResponse(
         content={
             "status": "healthy",
-            "service": "CybeMeeting API Production",
-            "version": "1.0.0",
+            "service": "CybeMeeting API Production - v2",
+            "version": "1.0.1",
             "database": "connected",
             "storage": "cloudinary",
             "openai_configured": settings.is_openai_available,
             "openai_key_present": bool(settings.OPENAI_API_KEY),
-            "model_name": settings.MODEL_NAME if hasattr(settings, 'MODEL_NAME') else "not_set"
+            "openai_key_length": len(settings.OPENAI_API_KEY),
+            "openai_env_key": bool(os.getenv("OPENAI_API_KEY")),
+            "openai_env_length": len(os.getenv("OPENAI_API_KEY", "")),
+            "model_name": getattr(settings, 'MODEL_NAME', 'not_set'),
+            "deployment_time": "2025-08-14-v2"
         }
     )
 
