@@ -157,7 +157,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="border-t border-gray-200 pt-4">
             <div className="text-xs text-gray-500">
               <div>Cybeform v1.0</div>
-              <div>MVP BTP Edition</div>
+              <div>BTP Edition</div>
             </div>
           </div>
         </div>
