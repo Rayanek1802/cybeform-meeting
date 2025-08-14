@@ -102,6 +102,23 @@ async def health_check():
     )
 
 
+@app.get("/debug/openai")
+async def debug_openai():
+    """Debug OpenAI configuration"""
+    import os
+    return JSONResponse(
+        content={
+            "openai_key_env": bool(os.getenv("OPENAI_API_KEY")),
+            "openai_key_length": len(os.getenv("OPENAI_API_KEY", "")),
+            "model_name_env": os.getenv("MODEL_NAME", "not_set"),
+            "whisper_api_env": os.getenv("WHISPER_API", "not_set"),
+            "settings_key": bool(settings.OPENAI_API_KEY),
+            "settings_available": settings.is_openai_available,
+            "settings_model": getattr(settings, 'MODEL_NAME', 'not_found'),
+            "env_vars": list(os.environ.keys())[:10]  # First 10 env vars for debugging
+        }
+    )
+
 @app.get("/")
 async def root():
     """Root endpoint"""
