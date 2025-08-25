@@ -193,3 +193,4 @@ class DiarizationService:
             "total_duration": round(total_duration, 2)
         }
 
+

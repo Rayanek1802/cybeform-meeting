@@ -66,3 +66,4 @@ git push origin main
 ---
 
 **Le problème est maintenant résolu ! Le build n'échouera plus sur les erreurs TypeScript.**
+

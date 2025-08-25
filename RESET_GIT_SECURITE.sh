@@ -31,3 +31,4 @@ echo "Pour pousser sur GitHub, utilisez :"
 echo "  git push --force origin main"
 echo ""
 echo "⚠️  IMPORTANT: Assurez-vous d'avoir créé votre fichier backend/.env avec vos clés API !"
+

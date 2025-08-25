@@ -107,3 +107,4 @@ async def logout():
     """Logout user (client-side token removal)"""
     return {"message": "Successfully logged out"}
 
+

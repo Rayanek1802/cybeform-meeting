@@ -31,3 +31,4 @@ function replaceAllImports(dir) {
 // Démarrer depuis le dossier src
 replaceAllImports('./src');
 console.log('All @ imports fixed!');
+

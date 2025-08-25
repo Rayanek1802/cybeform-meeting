@@ -153,3 +153,4 @@ Railway redéploiera automatiquement.
 ---
 
 **Le problème vient du fait que vous essayez d'accéder au backend directement, mais le backend ne sert pas le frontend !**
+

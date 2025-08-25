@@ -119,3 +119,4 @@ Si erreurs, vérifiez :
 ---
 
 **Railway est PARFAIT pour votre app avec PyTorch/Whisper car il offre assez de RAM !**
+

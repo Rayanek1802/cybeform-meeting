@@ -155,3 +155,4 @@ Suivez le guide principal **GUIDE_DEPLOIEMENT_RENDER.md** mais :
 ---
 
 **Note** : Le plan gratuit de Render supporte Docker, donc aucun coût supplémentaire ! 🎉
+

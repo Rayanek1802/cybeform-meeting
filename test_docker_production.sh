@@ -133,3 +133,4 @@ echo "  docker rm cybeform-backend-test cybeform-frontend-test"
 echo ""
 print_success "Si tout fonctionne, vous êtes prêt pour le déploiement sur Render !"
 echo ""
+
