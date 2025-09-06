@@ -34,11 +34,157 @@ class AnalysisService:
         meeting_metadata: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Analyze meeting transcript and extract structured information
+        Analyze meeting transcript and extract structured information using chunked analysis
         """
         if not self.client:
             return self._create_fallback_analysis(transcript_segments, meeting_metadata)
         
+        try:
+            # Use chunked analysis for better detail and consistency
+            chunk_analyses = self._analyze_in_chunks(transcript_segments, meeting_metadata)
+            
+            if not chunk_analyses:
+                logger.warning("No chunk analyses produced, falling back to single analysis")
+                return self._single_analysis_fallback(transcript_segments, meeting_metadata)
+            
+            # Merge all chunk analyses into a comprehensive report
+            merged_analysis = self._merge_analyses(chunk_analyses, meeting_metadata)
+            
+            logger.info(f"Meeting analysis completed successfully with {len(chunk_analyses)} chunks")
+            return merged_analysis
+            
+        except Exception as e:
+            logger.error(f"Chunked analysis failed: {e}")
+            return self._single_analysis_fallback(transcript_segments, meeting_metadata)
+    
+    def _analyze_in_chunks(
+        self, 
+        transcript_segments: List[Dict[str, Any]], 
+        meeting_metadata: Dict[str, Any],
+        chunk_duration_minutes: int = 15
+    ) -> List[Dict[str, Any]]:
+        """
+        Analyze meeting transcript by splitting it into chunks and analyzing each separately
+        
+        Args:
+            transcript_segments: List of transcript segments
+            meeting_metadata: Meeting metadata
+            chunk_duration_minutes: Duration of each chunk in minutes (default: 15)
+            
+        Returns:
+            List of analysis results for each chunk
+        """
+        chunk_duration_seconds = chunk_duration_minutes * 60
+        chunks = []
+        chunk_analyses = []
+        
+        # Group segments into chunks by time
+        current_chunk = []
+        current_chunk_start = 0
+        
+        for segment in transcript_segments:
+            start_time = segment.get("start_time", 0)
+            
+            # If this segment starts a new chunk
+            if start_time >= current_chunk_start + chunk_duration_seconds and current_chunk:
+                chunks.append({
+                    "segments": current_chunk,
+                    "start_time": current_chunk_start,
+                    "end_time": start_time,
+                    "chunk_number": len(chunks) + 1
+                })
+                current_chunk = []
+                current_chunk_start = start_time
+            
+            current_chunk.append(segment)
+        
+        # Add the last chunk if it has content
+        if current_chunk:
+            last_segment = current_chunk[-1]
+            end_time = last_segment.get("start_time", 0) + last_segment.get("duration", 60)
+            chunks.append({
+                "segments": current_chunk,
+                "start_time": current_chunk_start,
+                "end_time": end_time,
+                "chunk_number": len(chunks) + 1
+            })
+        
+        # Analyze each chunk separately
+        for chunk in chunks:
+            chunk_metadata = meeting_metadata.copy()
+            chunk_metadata['chunk_info'] = {
+                'chunk_number': chunk['chunk_number'],
+                'total_chunks': len(chunks),
+                'start_time': chunk['start_time'],
+                'end_time': chunk['end_time'],
+                'duration_minutes': (chunk['end_time'] - chunk['start_time']) / 60
+            }
+            
+            try:
+                chunk_analysis = self._analyze_single_chunk(chunk['segments'], chunk_metadata)
+                if chunk_analysis:
+                    chunk_analyses.append(chunk_analysis)
+                    logger.info(f"Successfully analyzed chunk {chunk['chunk_number']}/{len(chunks)}")
+            except Exception as e:
+                logger.error(f"Failed to analyze chunk {chunk['chunk_number']}: {e}")
+                # Continue with other chunks even if one fails
+                continue
+        
+        return chunk_analyses
+    
+    def _analyze_single_chunk(
+        self, 
+        chunk_segments: List[Dict[str, Any]], 
+        chunk_metadata: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Analyze a single chunk of transcript segments
+        """
+        if not chunk_segments:
+            return None
+            
+        # Format chunk transcript
+        chunk_transcript = self._format_transcript_for_analysis(chunk_segments)
+        
+        # Create specialized prompt for chunk analysis
+        prompt = self._create_chunk_analysis_prompt(chunk_transcript, chunk_metadata)
+        
+        # Call OpenAI API with chunk-specific settings
+        ai_instructions = chunk_metadata.get('ai_instructions', '')
+        response = self.client.chat.completions.create(
+            model=settings.MODEL_NAME,
+            messages=[
+                {
+                    "role": "system",
+                    "content": self._get_chunk_analysis_system_prompt(ai_instructions)
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1,  # Très déterministe pour la cohérence
+            max_tokens=8000   # Limite raisonnable par chunk
+        )
+        
+        # Parse and validate response
+        analysis_text = response.choices[0].message.content
+        analysis_data = json.loads(analysis_text)
+        
+        # Add chunk metadata to analysis
+        analysis_data['chunk_meta'] = chunk_metadata['chunk_info']
+        
+        return self._validate_and_clean_analysis(analysis_data)
+    
+    def _single_analysis_fallback(
+        self, 
+        transcript_segments: List[Dict[str, Any]], 
+        meeting_metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Fallback to single analysis when chunked analysis fails
+        """
         try:
             # Prepare transcript text
             full_transcript = self._format_transcript_for_analysis(transcript_segments)
@@ -61,8 +207,8 @@ class AnalysisService:
                     }
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.1,  # Très déterministe pour la cohérence
-                max_tokens=12000  # Beaucoup plus de tokens pour les rapports ultra-détaillés
+                temperature=0.1,
+                max_tokens=12000
             )
             
             # Parse response
@@ -72,11 +218,10 @@ class AnalysisService:
             # Validate and clean analysis
             cleaned_analysis = self._validate_and_clean_analysis(analysis_data)
             
-            logger.info("Meeting analysis completed successfully")
             return cleaned_analysis
             
         except Exception as e:
-            logger.error(f"Analysis failed: {e}")
+            logger.error(f"Single analysis fallback failed: {e}")
             return self._create_fallback_analysis(transcript_segments, meeting_metadata)
     
     def _get_system_prompt(self, user_instructions: str = None) -> str:
@@ -334,6 +479,426 @@ STRUCTURE JSON ATTENDUE - SECTIONS ADAPTATIVES ET EXHAUSTIVES:
 5. RESPECTER PRIORITAIREMENT les instructions utilisateur: {ai_instructions}
 
 Génère maintenant le JSON le plus exhaustif possible:"""
+    
+    def _get_chunk_analysis_system_prompt(self, user_instructions: str = None) -> str:
+        """Get system prompt optimized for chunk analysis"""
+        base_prompt = """Tu es un expert en analyse de réunions BTP. Tu analyses un SEGMENT spécifique d'une réunion pour extraire TOUS les détails importants de cette portion.
+
+CONTEXTE PARTICULIER - ANALYSE PAR SEGMENT:
+- Tu reçois seulement une partie (chunk) d'une réunion plus longue
+- Ton objectif: extraire TOUS les détails de ce segment avec un maximum de précision
+- Ne pas essayer de déduire ce qui s'est passé avant ou après ce segment
+- Se concentrer uniquement sur le contenu de cette portion temporelle
+
+PRINCIPES POUR L'ANALYSE DE SEGMENT:
+- Extraire TOUS les détails techniques mentionnés dans ce segment
+- Capturer TOUTES les décisions prises ou évoquées dans cette portion
+- Identifier TOUS les points d'action évoqués dans ce créneau
+- Noter TOUS les problèmes soulevés durant cette période
+- Documenter TOUS les aspects budgétaires/planning de ce segment
+- Être EXHAUSTIF sur cette portion même si elle semble répétitive"""
+
+        user_specific_guidance = ""
+        if user_instructions and user_instructions.strip():
+            user_specific_guidance = f"""
+
+INSTRUCTIONS SPÉCIFIQUES DE L'UTILISATEUR:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{user_instructions.strip()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANT: Respecte ces instructions dans l'analyse de ce segment particulier."""
+
+        return f"""{base_prompt}
+
+{user_specific_guidance}
+
+QUALITÉ REQUISE POUR CE SEGMENT:
+- Être EXHAUSTIF sur cette portion temporelle
+- Être PRÉCIS sur les détails de ce créneau
+- Ne pas omettre d'informations parce qu'elles semblent répétitives
+- Capturer même les nuances et sous-entendus de ce segment
+
+FORMAT JSON REQUIS:
+- Même structure que l'analyse complète mais focalisée sur ce segment
+- Toutes les sections présentes même si certaines sont vides pour ce chunk
+- Indiquer dans chaque élément qu'il provient de ce segment temporel spécifique"""
+
+    def _create_chunk_analysis_prompt(self, chunk_transcript: str, chunk_metadata: Dict[str, Any]) -> str:
+        """Create analysis prompt specifically for a chunk"""
+        chunk_info = chunk_metadata.get('chunk_info', {})
+        chunk_number = chunk_info.get('chunk_number', 1)
+        total_chunks = chunk_info.get('total_chunks', 1)
+        start_time = chunk_info.get('start_time', 0)
+        end_time = chunk_info.get('end_time', 0)
+        
+        start_minutes = int(start_time // 60)
+        start_seconds = int(start_time % 60)
+        end_minutes = int(end_time // 60)
+        end_seconds = int(end_time % 60)
+        
+        ai_instructions = chunk_metadata.get('ai_instructions', '')
+        instructions_display = f"\n📋 Instructions utilisateur: {ai_instructions}" if ai_instructions and ai_instructions.strip() else ""
+        
+        return f"""Tu analyses le SEGMENT {chunk_number}/{total_chunks} d'une réunion BTP.
+
+INFORMATIONS SUR CE SEGMENT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 Projet: {chunk_metadata.get('project_name', 'Non spécifié')}
+📝 Titre: {chunk_metadata.get('title', 'Non spécifié')}
+⏱️ Segment temporel: [{start_minutes:02d}:{start_seconds:02d}] - [{end_minutes:02d}:{end_seconds:02d}]
+🔢 Segment: {chunk_number} sur {total_chunks} au total
+📅 Date: {chunk_metadata.get('date', 'Non spécifié')}{instructions_display}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MISSION POUR CE SEGMENT:
+🎯 Extraire TOUS les détails de cette portion temporelle uniquement
+🎯 Capturer TOUTES les informations même si elles semblent redondantes
+🎯 Se concentrer sur cette tranche horaire spécifique: [{start_minutes:02d}:{start_seconds:02d}] - [{end_minutes:02d}:{end_seconds:02d}]
+🎯 Ne pas essayer de faire du lien avec le reste de la réunion
+
+TRANSCRIPTION DU SEGMENT À ANALYSER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{chunk_transcript}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Analyse EXHAUSTIVEMENT ce segment en respectant la même structure JSON que pour une analyse complète:
+{{
+  "meta": {{
+    "segmentNumber": {chunk_number},
+    "totalSegments": {total_chunks},
+    "timeRange": "[{start_minutes:02d}:{start_seconds:02d}] - [{end_minutes:02d}:{end_seconds:02d}]",
+    "projectName": "{chunk_metadata.get('project_name', 'Non spécifié')}",
+    "meetingTitle": "{chunk_metadata.get('title', 'Non spécifié')}",
+    "userInstructions": "{ai_instructions}"
+  }},
+  "sectionsDynamiques": {{
+    // Créer toutes les sections nécessaires selon le contenu de CE SEGMENT
+    // Même structure que l'analyse complète mais focalisée sur cette portion
+  }},
+  "vueChronologique": [
+    // Séquence des événements dans ce segment uniquement
+    "[{start_minutes:02d}:{start_seconds:02d}-XX:XX] Description de ce qui se passe dans cette sous-période"
+  ],
+  "analysisMetrics": {{
+    "segmentAnalyzed": {chunk_number},
+    "timeRangeMinutes": "{(end_time - start_time) / 60:.1f}",
+    "niveauDetaille": "Très élevé/Élevé/Moyen",
+    "qualiteSegment": "Riche/Moyen/Pauvre en informations"
+  }}
+}}
+
+🚨 IMPORTANT: Extrais TOUT de ce segment, même les détails qui pourraient sembler répétitifs par rapport à d'autres segments."""
+    
+    def _merge_analyses(
+        self, 
+        chunk_analyses: List[Dict[str, Any]], 
+        meeting_metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Merge multiple chunk analyses into a single comprehensive analysis
+        Eliminates exact duplicates while preserving all unique technical details
+        """
+        if not chunk_analyses:
+            return self._create_fallback_analysis([], meeting_metadata)
+        
+        # If only one chunk, return it directly but clean up the format
+        if len(chunk_analyses) == 1:
+            return self._format_single_chunk_as_full_analysis(chunk_analyses[0], meeting_metadata)
+        
+        # Initialize merged analysis structure
+        merged = {
+            "meta": self._merge_meta_sections(chunk_analyses, meeting_metadata),
+            "sectionsDynamiques": {},
+            "vueChronologique": [],
+            "analysisMetrics": self._merge_analysis_metrics(chunk_analyses)
+        }
+        
+        # Merge dynamic sections
+        merged["sectionsDynamiques"] = self._merge_dynamic_sections(chunk_analyses)
+        
+        # Merge chronological view
+        merged["vueChronologique"] = self._merge_chronological_views(chunk_analyses)
+        
+        logger.info(f"Successfully merged {len(chunk_analyses)} chunk analyses into comprehensive report")
+        return merged
+    
+    def _merge_meta_sections(
+        self, 
+        chunk_analyses: List[Dict[str, Any]], 
+        meeting_metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Merge meta information from all chunks"""
+        # Use meeting metadata as base and enrich with chunk information
+        participants_detected = meeting_metadata.get('participants', [])
+        expected_speakers = meeting_metadata.get('expected_speakers', len(participants_detected))
+        ai_instructions = meeting_metadata.get('ai_instructions', '')
+        duration_minutes = meeting_metadata.get('duration', 0)
+        
+        # Calculate total analysis coverage
+        total_chunks = len(chunk_analyses)
+        time_ranges = []
+        
+        for analysis in chunk_analyses:
+            chunk_meta = analysis.get('chunk_meta', {})
+            if chunk_meta:
+                start = chunk_meta.get('start_time', 0)
+                end = chunk_meta.get('end_time', 0)
+                time_ranges.append((start, end))
+        
+        coverage_analysis = ""
+        if time_ranges:
+            total_covered_time = sum(end - start for start, end in time_ranges)
+            coverage_percentage = (total_covered_time / (duration_minutes * 60)) * 100 if duration_minutes > 0 else 0
+            coverage_analysis = f"Analyse par chunks: {total_chunks} segments couvrant {coverage_percentage:.1f}% de la réunion"
+        
+        return {
+            "projectName": meeting_metadata.get('project_name', 'Non spécifié'),
+            "meetingTitle": meeting_metadata.get('title', 'Non spécifié'),
+            "meetingType": self._deduce_meeting_type(ai_instructions),
+            "meetingDate": meeting_metadata.get('date', 'Non spécifié'),
+            "duration": duration_minutes,
+            "participantsExpected": expected_speakers,
+            "participantsDetected": participants_detected,
+            "userInstructions": ai_instructions,
+            "analysisMethod": "Analyse par chunks avec fusion intelligente",
+            "chunksAnalyzed": total_chunks,
+            "coverageAnalysis": coverage_analysis
+        }
+    
+    def _merge_dynamic_sections(self, chunk_analyses: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Merge dynamic sections from all chunks, eliminating duplicates"""
+        merged_sections = {}
+        
+        # Collect all unique section names across chunks
+        all_section_names = set()
+        for analysis in chunk_analyses:
+            sections = analysis.get('sectionsDynamiques', {})
+            all_section_names.update(sections.keys())
+        
+        # For each section type, merge content from all chunks
+        for section_name in all_section_names:
+            merged_sections[section_name] = self._merge_section_content(
+                section_name, chunk_analyses
+            )
+        
+        # Remove empty sections
+        return {k: v for k, v in merged_sections.items() if v}
+    
+    def _merge_section_content(self, section_name: str, chunk_analyses: List[Dict[str, Any]]) -> List:
+        """Merge content for a specific section across all chunks"""
+        all_items = []
+        seen_items = set()  # For deduplication
+        
+        for analysis in chunk_analyses:
+            sections = analysis.get('sectionsDynamiques', {})
+            section_content = sections.get(section_name, [])
+            
+            if not isinstance(section_content, list):
+                continue
+                
+            chunk_info = analysis.get('chunk_meta', {})
+            chunk_number = chunk_info.get('chunk_number', 0)
+            time_range = chunk_info.get('start_time', 0), chunk_info.get('end_time', 0)
+            
+            for item in section_content:
+                # Add time context to each item
+                enriched_item = self._enrich_item_with_context(item, chunk_number, time_range)
+                
+                # Create a key for deduplication
+                dedup_key = self._create_deduplication_key(enriched_item)
+                
+                if dedup_key not in seen_items:
+                    seen_items.add(dedup_key)
+                    all_items.append(enriched_item)
+                else:
+                    # If similar item exists, merge additional details
+                    self._merge_similar_items(all_items, enriched_item, dedup_key)
+        
+        return all_items
+    
+    def _enrich_item_with_context(self, item: Any, chunk_number: int, time_range: tuple) -> Any:
+        """Add temporal context to items"""
+        start_time, end_time = time_range
+        start_minutes = int(start_time // 60)
+        start_seconds = int(start_time % 60)
+        end_minutes = int(end_time // 60) 
+        end_seconds = int(end_time % 60)
+        time_context = f"[{start_minutes:02d}:{start_seconds:02d}-{end_minutes:02d}:{end_seconds:02d}]"
+        
+        if isinstance(item, dict):
+            # For structured items (like actions, risks), add time context
+            enriched = item.copy()
+            if 'contexte' in enriched:
+                enriched['contexte'] = f"{time_context} {enriched['contexte']}"
+            else:
+                enriched['contexteTemporel'] = time_context
+            return enriched
+        else:
+            # For string items, prepend time context
+            return f"{time_context} {str(item)}"
+    
+    def _create_deduplication_key(self, item: Any) -> str:
+        """Create a key for deduplication based on content"""
+        if isinstance(item, dict):
+            # For structured items, use main content fields
+            if 'action' in item:
+                return f"action:{item.get('action', '')}:{item.get('responsable', '')}"
+            elif 'risque' in item:
+                return f"risque:{item.get('risque', '')}:{item.get('categorie', '')}"
+            else:
+                # Generic approach for other dict items
+                main_keys = ['titre', 'description', 'probleme', 'decision', 'point']
+                for key in main_keys:
+                    if key in item:
+                        return f"{key}:{str(item[key])[:100]}"
+                return str(item)[:100]
+        else:
+            # For string items, use content without time prefix for comparison
+            content = str(item)
+            # Remove time context for comparison
+            if content.startswith('[') and ']' in content:
+                content = content.split(']', 1)[1].strip()
+            return content[:100]
+    
+    def _merge_similar_items(self, all_items: List, new_item: Any, dedup_key: str):
+        """Merge details from similar items to enrich existing ones"""
+        # Find the existing item with the same dedup_key
+        for i, existing_item in enumerate(all_items):
+            if self._create_deduplication_key(existing_item) == dedup_key:
+                if isinstance(existing_item, dict) and isinstance(new_item, dict):
+                    # Merge dictionary items by combining unique information
+                    merged = existing_item.copy()
+                    
+                    # Combine context information
+                    existing_context = merged.get('contexte', merged.get('contexteTemporel', ''))
+                    new_context = new_item.get('contexte', new_item.get('contexteTemporel', ''))
+                    
+                    if new_context and new_context not in existing_context:
+                        merged['contexte'] = f"{existing_context} | {new_context}"
+                    
+                    # Merge other fields that might have additional information
+                    for key, value in new_item.items():
+                        if key not in merged or not merged[key]:
+                            merged[key] = value
+                        elif key not in ['contexte', 'contexteTemporel'] and str(value) not in str(merged[key]):
+                            # Combine values if they're different
+                            merged[key] = f"{merged[key]} | {value}"
+                    
+                    all_items[i] = merged
+                break
+    
+    def _merge_chronological_views(self, chunk_analyses: List[Dict[str, Any]]) -> List[str]:
+        """Merge chronological views from all chunks in temporal order"""
+        all_events = []
+        
+        for analysis in chunk_analyses:
+            chunk_events = analysis.get('vueChronologique', [])
+            chunk_meta = analysis.get('chunk_meta', {})
+            chunk_number = chunk_meta.get('chunk_number', 0)
+            
+            for event in chunk_events:
+                if isinstance(event, str):
+                    all_events.append({
+                        'event': event,
+                        'chunk': chunk_number,
+                        'original_time': self._extract_time_from_event(event)
+                    })
+        
+        # Sort events by time
+        all_events.sort(key=lambda x: x['original_time'])
+        
+        # Return just the event descriptions in chronological order
+        return [event['event'] for event in all_events]
+    
+    def _extract_time_from_event(self, event: str) -> float:
+        """Extract timestamp from chronological event string"""
+        import re
+        # Look for patterns like [MM:SS] or [MM:SS-MM:SS]
+        time_pattern = r'\[(\d{1,2}):(\d{2})'
+        match = re.search(time_pattern, event)
+        if match:
+            minutes = int(match.group(1))
+            seconds = int(match.group(2))
+            return minutes * 60 + seconds
+        return 0
+    
+    def _merge_analysis_metrics(self, chunk_analyses: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Merge analysis metrics from all chunks"""
+        total_segments = sum(
+            analysis.get('analysisMetrics', {}).get('totalSegments', 0) 
+            for analysis in chunk_analyses
+        )
+        
+        analyzed_segments = sum(
+            analysis.get('analysisMetrics', {}).get('segmentsAnalyses', 0) 
+            for analysis in chunk_analyses
+        )
+        
+        # Determine overall quality level
+        quality_levels = [
+            analysis.get('analysisMetrics', {}).get('qualiteExtraction', 'Moyen')
+            for analysis in chunk_analyses
+        ]
+        
+        # Map quality to numeric values for averaging
+        quality_map = {'Excellent': 4, 'Bon': 3, 'Moyen': 2, 'Insuffisant': 1}
+        reverse_quality_map = {4: 'Excellent', 3: 'Bon', 2: 'Moyen', 1: 'Insuffisant'}
+        
+        avg_quality = sum(quality_map.get(q, 2) for q in quality_levels) / len(quality_levels)
+        overall_quality = reverse_quality_map[round(avg_quality)]
+        
+        return {
+            "totalSegments": total_segments,
+            "segmentsAnalyses": analyzed_segments,
+            "chunksProcessed": len(chunk_analyses),
+            "niveauDetaille": "Très élevé (analyse par chunks)",
+            "couvertureSujets": "Exhaustive (fusion intelligente)",
+            "qualiteExtraction": overall_quality,
+            "methodologie": "Analyse segmentée avec déduplication et fusion contextuelle"
+        }
+    
+    def _format_single_chunk_as_full_analysis(
+        self, 
+        chunk_analysis: Dict[str, Any], 
+        meeting_metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Format a single chunk analysis as a complete meeting analysis"""
+        # Remove chunk-specific metadata and reformat as full analysis
+        formatted = chunk_analysis.copy()
+        
+        # Update meta to reflect full meeting context
+        formatted["meta"] = self._merge_meta_sections([chunk_analysis], meeting_metadata)
+        
+        # Update analysis metrics
+        if "analysisMetrics" in formatted:
+            formatted["analysisMetrics"]["methodologie"] = "Analyse complète (réunion courte)"
+            formatted["analysisMetrics"]["chunksProcessed"] = 1
+        
+        # Clean up chunk-specific fields
+        if "chunk_meta" in formatted:
+            del formatted["chunk_meta"]
+        
+        return formatted
+    
+    def _deduce_meeting_type(self, ai_instructions: str) -> str:
+        """Deduce meeting type from AI instructions"""
+        if not ai_instructions:
+            return "Autre"
+            
+        ai_lower = ai_instructions.lower()
+        if "chantier" in ai_lower:
+            return "Réunion de chantier"
+        elif "avancement" in ai_lower or "suivi" in ai_lower:
+            return "Point d'avancement"
+        elif "coordination" in ai_lower:
+            return "Réunion de coordination"
+        elif "sécurité" in ai_lower:
+            return "Réunion sécurité"
+        elif "livraison" in ai_lower:
+            return "Réunion de livraison"
+        else:
+            return "Réunion personnalisée"
     
     def _format_transcript_for_analysis(self, segments: List[Dict[str, Any]]) -> str:
         """Format transcript segments for analysis"""
