@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, RefreshCw, Clock, Users, FileText, Search } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { Button } from '../components/ui/button'
@@ -14,6 +14,9 @@ import { useToast } from '../components/ui/toaster'
 import { meetingsApi, projectsApi, type Meeting, type ProcessingStatus, type MeetingPreview } from '../lib/api'
 import { formatDate, formatDuration } from '../lib/utils'
 import Layout from '../components/Layout'
+import MeetingInfoTable from '../components/MeetingInfoTable'
+import TranscriptTable from '../components/TranscriptTable'
+import ReportTable from '../components/ReportTable'
 
 const MeetingDetail: React.FC = () => {
   const { projectId, meetingId } = useParams<{ projectId: string; meetingId: string }>()
@@ -176,10 +179,6 @@ const MeetingDetail: React.FC = () => {
     }
   }
 
-  const filteredTranscript = preview?.transcript.filter(segment =>
-    segment.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    segment.speaker.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
 
   if (isLoading) {
     return (
@@ -245,59 +244,8 @@ const MeetingDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Summary */}
-        {meeting && (
-          <Card className="border-gray-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <span>Résumé du meeting</span>
-                <Badge 
-                  variant={meeting.status === 'Terminé' ? 'default' : 'secondary'}
-                  className={
-                    meeting.status === 'Terminé' 
-                      ? 'bg-green-50 text-green-700 border-green-200'
-                      : meeting.status === 'En cours de traitement'
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-gray-50 text-gray-700 border-gray-200'
-                  }
-                >
-                  {meeting.status}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium">{meeting.participants_detected.length} participants</p>
-                    <p className="text-xs text-gray-500">{meeting.participants_detected.join(', ')}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {meeting.duration ? formatDuration(meeting.duration) : 'Durée inconnue'}
-                    </p>
-                    <p className="text-xs text-gray-500">Durée totale</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {formatDate(meeting.date)}
-                    </p>
-                    <p className="text-xs text-gray-500">Date de création</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Meeting Information Table */}
+        {meeting && <MeetingInfoTable meeting={meeting} />}
 
         {/* Processing Progress */}
         {meeting?.status === 'En cours de traitement' && status && (
@@ -337,54 +285,15 @@ const MeetingDetail: React.FC = () => {
               </TabsList>
               
               <TabsContent value="report" className="space-y-0">
-                <Card className="border-gray-200">
-                  <CardHeader>
-                    <CardTitle>Rapport d'analyse</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: preview.report_html }}
-                    />
-                  </CardContent>
-                </Card>
+                <ReportTable reportHtml={preview.report_html} />
               </TabsContent>
               
               <TabsContent value="transcript" className="space-y-0">
-                <Card className="border-gray-200">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Transcription complète</CardTitle>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          placeholder="Rechercher dans la transcription..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 w-80"
-                        />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {filteredTranscript.map((segment, index) => (
-                        <div key={index} className="border-l-4 border-blue-200 pl-4 py-2 bg-gray-50 rounded-r-lg">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Badge variant="outline" className="text-xs">
-                              {segment.speaker}
-                            </Badge>
-                            <span className="text-xs text-gray-500">
-                              {Math.floor(segment.start_time / 60)}:{String(Math.floor(segment.start_time % 60)).padStart(2, '0')} - 
-                              {Math.floor(segment.end_time / 60)}:{String(Math.floor(segment.end_time % 60)).padStart(2, '0')}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-800">{segment.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                <TranscriptTable 
+                  segments={preview.transcript} 
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                />
               </TabsContent>
             </Tabs>
           </motion.div>
