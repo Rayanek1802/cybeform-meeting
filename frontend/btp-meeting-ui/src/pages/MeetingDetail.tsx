@@ -16,7 +16,7 @@ import { formatDate, formatDuration } from '../lib/utils'
 import Layout from '../components/Layout'
 import MeetingInfoTable from '../components/MeetingInfoTable'
 import TranscriptTable from '../components/TranscriptTable'
-import ReportTable from '../components/ReportTable'
+import StructuredReportTable from '../components/StructuredReportTable'
 
 const MeetingDetail: React.FC = () => {
   const { projectId, meetingId } = useParams<{ projectId: string; meetingId: string }>()
@@ -285,7 +285,7 @@ const MeetingDetail: React.FC = () => {
               </TabsList>
               
               <TabsContent value="report" className="space-y-0">
-                <ReportTable reportHtml={preview.report_html} />
+                <StructuredReportTable reportHtml={preview.report_html} />
               </TabsContent>
               
               <TabsContent value="transcript" className="space-y-0">

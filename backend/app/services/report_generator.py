@@ -355,7 +355,7 @@ class ReportGenerator:
             para.add_run(metric)
     
     def _add_section(self, doc: Document, title: str, content, content_type: str = "list"):
-        """Add a content section"""
+        """Add a content section with enhanced formatting"""
         # Add title
         doc.add_heading(title, level=1)
         
@@ -376,10 +376,144 @@ class ReportGenerator:
                 doc.add_paragraph("Aucun élément identifié.")
                 return
             
-            for item in content:
-                para = doc.add_paragraph(str(item), style='List Bullet')
+            # Check if content contains structured data (dictionaries)
+            if any(isinstance(item, dict) for item in content):
+                self._add_structured_content_table(doc, content)
+            else:
+                # Simple list items
+                for item in content:
+                    para = doc.add_paragraph(self._format_content_item(item), style='List Bullet')
         
         doc.add_paragraph()  # Add spacing
+    
+    def _add_structured_content_table(self, doc: Document, content: List[Dict[str, Any]]):
+        """Add structured content as a formatted table"""
+        if not content:
+            return
+            
+        # Analyze the structure to determine columns
+        all_keys = set()
+        for item in content:
+            if isinstance(item, dict):
+                all_keys.update(item.keys())
+        
+        # Define column mapping for better presentation
+        column_mappings = {
+            'description': 'Description',
+            'context': 'Contexte', 
+            'details': 'Détails',
+            'contexteTemporel': 'Période',
+            'action': 'Action',
+            'responsable': 'Responsable',
+            'echeance': 'Échéance',
+            'risque': 'Risque',
+            'categorie': 'Catégorie',
+            'impact': 'Impact',
+            'mitigation': 'Mitigation',
+            'mitigations': 'Mitigation',
+            'probabilite': 'Probabilité'
+        }
+        
+        # Select relevant columns in priority order
+        priority_columns = ['description', 'context', 'details', 'contexteTemporel', 'action', 'responsable', 'echeance', 'risque', 'categorie', 'impact', 'mitigation', 'mitigations', 'probabilite']
+        selected_columns = []
+        
+        for col in priority_columns:
+            if col in all_keys:
+                selected_columns.append(col)
+        
+        # Add any remaining columns
+        for key in sorted(all_keys):
+            if key not in selected_columns:
+                selected_columns.append(key)
+        
+        # Limit to 4-5 columns for readability
+        selected_columns = selected_columns[:5]
+        
+        if not selected_columns:
+            return
+            
+        # Create table
+        table = doc.add_table(rows=1, cols=len(selected_columns))
+        table.style = 'Table Grid'
+        table.allow_autofit = True
+        
+        # Header row
+        header_cells = table.rows[0].cells
+        for i, col in enumerate(selected_columns):
+            header_cells[i].text = column_mappings.get(col, col.title())
+            header_cells[i].paragraphs[0].runs[0].font.bold = True
+            header_cells[i].paragraphs[0].runs[0].font.color.rgb = self.brand_primary
+            header_cells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            
+            # Add light background to header
+            try:
+                from docx.oxml.shared import qn
+                tcPr = header_cells[i]._tc.get_or_add_tcPr()
+                shd = tcPr.find(qn('w:shd'))
+                if shd is None:
+                    from docx.oxml.parser import parse_xml
+                    from docx.oxml.ns import nsdecls
+                    shd = parse_xml(r'<w:shd {} w:fill="F1F5F9"/>'.format(nsdecls('w')))
+                    tcPr.append(shd)
+            except:
+                pass  # Skip background color if it fails
+        
+        # Data rows
+        for item in content:
+            if isinstance(item, dict):
+                row_cells = table.add_row().cells
+                for i, col in enumerate(selected_columns):
+                    value = item.get(col, '')
+                    if isinstance(value, list):
+                        value = ', '.join(str(v) for v in value)
+                    
+                    # Format the text nicely
+                    formatted_value = self._format_content_item(value)
+                    row_cells[i].text = formatted_value
+                    row_cells[i].paragraphs[0].runs[0].font.size = Pt(10)
+                    
+                    # Special formatting for time ranges
+                    if col == 'contexteTemporel' and value:
+                        row_cells[i].paragraphs[0].runs[0].font.name = 'Consolas'
+                        row_cells[i].paragraphs[0].runs[0].font.size = Pt(9)
+                        row_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(55, 65, 81)
+    
+    def _format_content_item(self, item):
+        """Format a content item for better presentation"""
+        if isinstance(item, dict):
+            # For dictionary items, create a readable format
+            formatted_parts = []
+            
+            # Priority order for displaying dict fields
+            priority_fields = ['description', 'context', 'details', 'action', 'risque']
+            other_fields = []
+            
+            for field in priority_fields:
+                if field in item and item[field]:
+                    value = str(item[field]).strip()
+                    if value:
+                        formatted_parts.append(value)
+            
+            for key, value in item.items():
+                if key not in priority_fields and value:
+                    value_str = str(value).strip()
+                    if value_str and key != 'contexteTemporel':
+                        other_fields.append(f"{key}: {value_str}")
+            
+            # Combine main content with additional details
+            result = '. '.join(formatted_parts)
+            if other_fields:
+                result += f" ({'; '.join(other_fields)})"
+            
+            return result
+        else:
+            # For simple items, just clean up the string representation
+            item_str = str(item).strip()
+            # Remove any Python dict syntax artifacts
+            if item_str.startswith('{') and item_str.endswith('}'):
+                return "Données non formatées"
+            return item_str
     
     def _add_actions_table(self, doc: Document, actions: List[Dict[str, Any]], title: str = "5. Plan d'actions"):
         """Add enhanced actions table with full information"""
