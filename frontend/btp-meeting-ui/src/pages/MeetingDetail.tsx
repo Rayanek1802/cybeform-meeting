@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, RefreshCw, Clock, Users, FileText, Search } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { Button } from '../components/ui/button'
@@ -177,10 +177,6 @@ const MeetingDetail: React.FC = () => {
     }
   }
 
-  const filteredTranscript = preview?.transcript.filter(segment =>
-    segment.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    segment.speaker.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
 
   if (isLoading) {
     return (
@@ -246,59 +242,6 @@ const MeetingDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Summary */}
-        {meeting && (
-          <Card className="border-gray-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <span>Résumé du meeting</span>
-                <Badge 
-                  variant={meeting.status === 'Terminé' ? 'default' : 'secondary'}
-                  className={
-                    meeting.status === 'Terminé' 
-                      ? 'bg-green-50 text-green-700 border-green-200'
-                      : meeting.status === 'En cours de traitement'
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-gray-50 text-gray-700 border-gray-200'
-                  }
-                >
-                  {meeting.status}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium">{meeting.participants_detected.length} participants</p>
-                    <p className="text-xs text-gray-500">{meeting.participants_detected.join(', ')}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {meeting.duration ? formatDuration(meeting.duration) : 'Durée inconnue'}
-                    </p>
-                    <p className="text-xs text-gray-500">Durée totale</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {formatDate(meeting.date)}
-                    </p>
-                    <p className="text-xs text-gray-500">Date de création</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Processing Progress */}
         {meeting?.status === 'En cours de traitement' && status && (
