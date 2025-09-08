@@ -355,7 +355,7 @@ class ReportGenerator:
             para.add_run(metric)
     
     def _add_section(self, doc: Document, title: str, content, content_type: str = "list"):
-        """Add a content section"""
+        """Add a content section with enhanced formatting for dictionary-like content"""
         # Add title
         doc.add_heading(title, level=1)
         
@@ -371,15 +371,175 @@ class ReportGenerator:
                 para = doc.add_paragraph(f"{key}: {value}")
         
         elif content_type == "list":
-            # Handle list content
+            # Handle list content with enhanced dictionary parsing
             if not content:
                 doc.add_paragraph("Aucun élément identifié.")
                 return
             
+            # Check if content contains dictionary-like structures
+            structured_items = []
+            simple_items = []
+            
             for item in content:
-                para = doc.add_paragraph(str(item), style='List Bullet')
+                item_str = str(item)
+                # Try to parse dictionary-like content
+                if self._is_dict_like_string(item_str):
+                    parsed_dict = self._parse_dict_string(item_str)
+                    if parsed_dict:
+                        structured_items.append(parsed_dict)
+                    else:
+                        simple_items.append(item_str)
+                else:
+                    simple_items.append(item_str)
+            
+            # Display structured items in a table if found
+            if structured_items:
+                self._add_structured_table(doc, structured_items)
+            
+            # Display simple items as bullet points
+            if simple_items:
+                if structured_items:  # Add separator if we have both types
+                    doc.add_paragraph()
+                    sub_heading = doc.add_paragraph("Autres éléments:")
+                    sub_heading.runs[0].font.bold = True
+                    sub_heading.runs[0].font.color.rgb = self.brand_secondary
+                
+                for item in simple_items:
+                    para = doc.add_paragraph(str(item), style='List Bullet')
+                    para.runs[0].font.size = Pt(11)
         
         doc.add_paragraph()  # Add spacing
+    
+    def _is_dict_like_string(self, text: str) -> bool:
+        """Check if a string contains dictionary-like content"""
+        import re
+        # Look for patterns like {'key': 'value'} or key: value
+        dict_patterns = [
+            r"\{['\"][\w\s]+['\"]:\s*['\"].*?['\"][,}]",  # {'key': 'value'}
+            r"['\"][\w\s]+['\"]:\s*['\"].*?['\"]",        # 'key': 'value'
+            r"[\w\s]+:\s*['\"].*?['\"]"                   # key: 'value'
+        ]
+        for pattern in dict_patterns:
+            if re.search(pattern, text):
+                return True
+        return False
+    
+    def _parse_dict_string(self, text: str) -> dict:
+        """Parse dictionary-like string into structured data"""
+        import re
+        parsed_dict = {}
+        
+        # Try multiple patterns to extract key-value pairs
+        patterns = [
+            r"\{['\"](\w+)['\"]:\s*['\"]([^'\"]*)['\"]",  # {'key': 'value'}
+            r"['\"](\w+)['\"]:\s*['\"]([^'\"]*)['\"]",    # 'key': 'value'
+            r"(\w+):\s*['\"]([^'\"]*)['\"]"               # key: 'value'
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, text)
+            for key, value in matches:
+                parsed_dict[key] = value
+        
+        return parsed_dict
+    
+    def _add_structured_table(self, doc: Document, structured_items: list):
+        """Add a table for structured dictionary-like items"""
+        if not structured_items:
+            return
+        
+        # Determine table columns based on common keys
+        all_keys = set()
+        for item in structured_items:
+            all_keys.update(item.keys())
+        
+        # Common keys mapping to French
+        key_mappings = {
+            'decision': 'Décision',
+            'detail': 'Détail',
+            'risk': 'Risque',
+            'recommendation': 'Recommandation',
+            'point': 'Point',
+            'participant': 'Participant',
+            'context': 'Contexte',
+            'contexte': 'Contexte',
+            'contexteTemporel': 'Temps',
+            'priority': 'Priorité',
+            'priorite': 'Priorité',
+            'action': 'Action',
+            'tache': 'Tâche',
+            'responsable': 'Responsable',
+            'echeance': 'Échéance'
+        }
+        
+        # Filter and order columns
+        ordered_keys = []
+        main_keys = ['decision', 'detail', 'risk', 'recommendation', 'point', 'participant', 'action', 'tache']
+        
+        # Add main content key first
+        for key in main_keys:
+            if key in all_keys:
+                ordered_keys.append(key)
+                break
+        
+        # Add other important keys
+        other_important_keys = ['context', 'contexte', 'contexteTemporel', 'priority', 'priorite', 'responsable', 'echeance']
+        for key in other_important_keys:
+            if key in all_keys and key not in ordered_keys:
+                ordered_keys.append(key)
+        
+        # Add remaining keys
+        for key in sorted(all_keys):
+            if key not in ordered_keys:
+                ordered_keys.append(key)
+        
+        # Create table
+        num_cols = min(len(ordered_keys), 4)  # Limit to 4 columns for readability
+        table = doc.add_table(rows=1, cols=num_cols)
+        table.style = 'Table Grid'
+        table.allow_autofit = True
+        
+        # Header row
+        header_cells = table.rows[0].cells
+        for i, key in enumerate(ordered_keys[:num_cols]):
+            header_cells[i].text = key_mappings.get(key, key.title())
+            header_cells[i].paragraphs[0].runs[0].font.bold = True
+            header_cells[i].paragraphs[0].runs[0].font.color.rgb = self.brand_primary
+            header_cells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            
+            # Add light background to header
+            try:
+                from docx.oxml.shared import qn
+                tcPr = header_cells[i]._tc.get_or_add_tcPr()
+                shd = tcPr.find(qn('w:shd'))
+                if shd is None:
+                    from docx.oxml.parser import parse_xml
+                    from docx.oxml.ns import nsdecls
+                    shd = parse_xml(r'<w:shd {} w:fill="E0E7FF"/>'.format(nsdecls('w')))
+                    tcPr.append(shd)
+            except:
+                pass
+        
+        # Data rows
+        for item in structured_items:
+            row_cells = table.add_row().cells
+            for i, key in enumerate(ordered_keys[:num_cols]):
+                value = item.get(key, '')
+                
+                # Format temporal context
+                if key == 'contexteTemporel' and value:
+                    # Extract time from patterns like [00:00-16:07]
+                    import re
+                    time_match = re.search(r'\[(\d{2}:\d{2})-(\d{2}:\d{2})\]', value)
+                    if time_match:
+                        value = f"{time_match.group(1)} - {time_match.group(2)}"
+                
+                row_cells[i].text = str(value)
+                row_cells[i].paragraphs[0].runs[0].font.size = Pt(10)
+                
+                # Highlight main content column
+                if i == 0:
+                    row_cells[i].paragraphs[0].runs[0].font.bold = True
     
     def _add_actions_table(self, doc: Document, actions: List[Dict[str, Any]], title: str = "5. Plan d'actions"):
         """Add enhanced actions table with full information"""

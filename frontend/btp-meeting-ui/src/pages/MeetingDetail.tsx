@@ -14,6 +14,7 @@ import { useToast } from '../components/ui/toaster'
 import { meetingsApi, projectsApi, type Meeting, type ProcessingStatus, type MeetingPreview } from '../lib/api'
 import { formatDate, formatDuration } from '../lib/utils'
 import Layout from '../components/Layout'
+import ReportFormatter from '../components/ReportFormatter'
 
 const MeetingDetail: React.FC = () => {
   const { projectId, meetingId } = useParams<{ projectId: string; meetingId: string }>()
@@ -337,17 +338,7 @@ const MeetingDetail: React.FC = () => {
               </TabsList>
               
               <TabsContent value="report" className="space-y-0">
-                <Card className="border-gray-200">
-                  <CardHeader>
-                    <CardTitle>Rapport d'analyse</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: preview.report_html }}
-                    />
-                  </CardContent>
-                </Card>
+                <ReportFormatter htmlContent={preview.report_html} />
               </TabsContent>
               
               <TabsContent value="transcript" className="space-y-0">
