@@ -429,17 +429,74 @@ class ReportGenerator:
         import re
         parsed_dict = {}
         
-        # Try multiple patterns to extract key-value pairs
+        # Enhanced patterns to capture complete content including apostrophes and long text
         patterns = [
-            r"\{['\"](\w+)['\"]:\s*['\"]([^'\"]*)['\"]",  # {'key': 'value'}
-            r"['\"](\w+)['\"]:\s*['\"]([^'\"]*)['\"]",    # 'key': 'value'
-            r"(\w+):\s*['\"]([^'\"]*)['\"]"               # key: 'value'
+            # Pattern for complete dictionary with proper quote handling
+            r"['\"](\w+)['\"]:\s*['\"]([^'\"]*(?:[^'\"]+[^'\"]*)*)['\"]",  # Basic pattern
+            # Pattern that handles escaped quotes and longer content
+            r"['\"]([^'\"]+)['\"]:\s*['\"]([^'\"]*(?:\\.[^'\"]*)*)['\"]",   # With escaped chars
+            # Pattern for dictionary values that might contain apostrophes
+            r"['\"](\w+)['\"]:\s*['\"]([^'\"]*?)['\"](?:\s*[,}])",         # Non-greedy with delimiters
         ]
         
-        for pattern in patterns:
-            matches = re.findall(pattern, text)
-            for key, value in matches:
-                parsed_dict[key] = value
+        # First try to extract the full dictionary structure
+        dict_match = re.search(r'\{([^{}]+)\}', text)
+        if dict_match:
+            dict_content = dict_match.group(1)
+            
+            # Split by comma but be careful of commas inside quotes
+            items = []
+            current_item = ""
+            in_quotes = False
+            quote_char = None
+            
+            i = 0
+            while i < len(dict_content):
+                char = dict_content[i]
+                
+                # Check for escaped characters
+                if char == '\\' and i + 1 < len(dict_content):
+                    # Add the escape sequence as-is, we'll handle it later
+                    current_item += char + dict_content[i + 1]
+                    i += 2
+                    continue
+                    
+                if char in ["'", '"'] and not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char and in_quotes:
+                    in_quotes = False
+                    quote_char = None
+                elif char == ',' and not in_quotes:
+                    if current_item.strip():
+                        items.append(current_item.strip())
+                    current_item = ""
+                    i += 1
+                    continue
+                
+                current_item += char
+                i += 1
+            
+            if current_item.strip():
+                items.append(current_item.strip())
+            
+            # Parse each item
+            for item in items:
+                # Extract key-value from each item, handling escaped quotes
+                # This pattern handles escaped quotes properly by using atomic groups and backtracking
+                kv_match = re.search(r"['\"]([^'\"]+)['\"]:\s*['\"](((?:[^'\"\\]|\\.)*))['\"]", item)
+                if kv_match:
+                    key, value = kv_match.groups()[:2]  # Take only key and value
+                    # Unescape common escape sequences
+                    value = value.replace("\\'", "'").replace('\\"', '"').replace("\\\\", "\\")
+                    parsed_dict[key] = value
+        
+        # Fallback to simple patterns if dictionary parsing failed
+        if not parsed_dict:
+            for pattern in patterns:
+                matches = re.findall(pattern, text)
+                for key, value in matches:
+                    parsed_dict[key] = value
         
         return parsed_dict
     
@@ -497,7 +554,18 @@ class ReportGenerator:
         num_cols = min(len(ordered_keys), 4)  # Limit to 4 columns for readability
         table = doc.add_table(rows=1, cols=num_cols)
         table.style = 'Table Grid'
-        table.allow_autofit = True
+        table.allow_autofit = False  # Disable autofit to allow custom column widths
+        
+        # Set column widths to prevent truncation
+        from docx.shared import Inches
+        if num_cols >= 1:
+            table.columns[0].width = Inches(3.5)  # Main content column - wider
+        if num_cols >= 2:
+            table.columns[1].width = Inches(2.0)  # Context column
+        if num_cols >= 3:
+            table.columns[2].width = Inches(1.2)  # Time column
+        if num_cols >= 4:
+            table.columns[3].width = Inches(1.0)  # Additional column
         
         # Header row
         header_cells = table.rows[0].cells
@@ -536,6 +604,23 @@ class ReportGenerator:
                 
                 row_cells[i].text = str(value)
                 row_cells[i].paragraphs[0].runs[0].font.size = Pt(10)
+                
+                # Enable text wrapping in cells
+                row_cells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+                
+                # Set cell properties for text wrapping
+                try:
+                    from docx.oxml.shared import qn
+                    from docx.oxml import OxmlElement
+                    tcPr = row_cells[i]._tc.get_or_add_tcPr()
+                    # Enable text wrapping
+                    tcW = tcPr.find(qn('w:tcW'))
+                    if tcW is None:
+                        tcW = OxmlElement(qn('w:tcW'))
+                        tcW.set(qn('w:type'), 'auto')
+                        tcPr.append(tcW)
+                except:
+                    pass  # Skip if XML manipulation fails
                 
                 # Highlight main content column
                 if i == 0:
