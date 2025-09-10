@@ -381,16 +381,20 @@ class ReportGenerator:
             simple_items = []
             
             for item in content:
-                item_str = str(item)
-                # Try to parse dictionary-like content
-                if self._is_dict_like_string(item_str):
-                    parsed_dict = self._parse_dict_string(item_str)
-                    if parsed_dict:
-                        structured_items.append(parsed_dict)
+                # Handle items that are already dict objects (from JSON parsing)
+                if isinstance(item, dict):
+                    structured_items.append(item)
+                else:
+                    item_str = str(item)
+                    # Try to parse dictionary-like content from strings
+                    if self._is_dict_like_string(item_str):
+                        parsed_dict = self._parse_dict_string(item_str)
+                        if parsed_dict:
+                            structured_items.append(parsed_dict)
+                        else:
+                            simple_items.append(item_str)
                     else:
                         simple_items.append(item_str)
-                else:
-                    simple_items.append(item_str)
             
             # Display structured items in a table if found
             if structured_items:
@@ -1016,9 +1020,67 @@ class ReportGenerator:
         html = "<ul style='padding-left: 20px;'>"
         for item in items:
             if item and not str(item).startswith("/*"):
-                html += f"<li style='margin-bottom: 8px; line-height: 1.4;'>{item}</li>"
+                # Format dictionary objects properly
+                if isinstance(item, dict):
+                    formatted_item = self._format_dict_for_html(item)
+                    html += f"<li style='margin-bottom: 8px; line-height: 1.4;'>{formatted_item}</li>"
+                else:
+                    html += f"<li style='margin-bottom: 8px; line-height: 1.4;'>{item}</li>"
         html += "</ul>"
         return html
+    
+    def _format_dict_for_html(self, item_dict: dict) -> str:
+        """Format a dictionary object for HTML display"""
+        # Map of common field keys to display names
+        field_mapping = {
+            'decision': '🎯 Décision',
+            'detail': '🔧 Détail technique',
+            'risk': '⚠️ Risque',
+            'recommendation': '💡 Recommandation',
+            'point': '📌 Point important',
+            'action': '✅ Action',
+            'tache': '✅ Tâche',
+            'context': '📝 Contexte',
+            'contexte': '📝 Contexte',
+            'contexteTemporel': '⏰ Moment',
+            'responsable': '👤 Responsable',
+            'echeance': '📅 Échéance',
+            'priorite': '🔥 Priorité'
+        }
+        
+        # Extract main content (first field that's not context/time)
+        main_content = None
+        context_info = []
+        
+        for key, value in item_dict.items():
+            if key in ['decision', 'detail', 'risk', 'recommendation', 'point', 'action', 'tache']:
+                main_content = f"<strong>{value}</strong>"
+            elif key in ['context', 'contexte']:
+                if value:
+                    context_info.append(f"<em>Contexte: {value}</em>")
+            elif key == 'contexteTemporel':
+                if value:
+                    # Format time context nicely
+                    time_str = value.replace('[', '').replace(']', '')
+                    context_info.append(f"<span style='color: #6B7280; font-size: 0.9em;'>⏱️ {time_str}</span>")
+            elif value:  # Other fields
+                field_name = field_mapping.get(key, key.capitalize())
+                context_info.append(f"{field_name}: {value}")
+        
+        # Build formatted string
+        if main_content:
+            result = main_content
+            if context_info:
+                result += f"<div style='margin-top: 4px; padding-left: 10px; color: #6B7280; font-size: 0.95em;'>{' • '.join(context_info)}</div>"
+            return result
+        else:
+            # Fallback: just show all fields nicely
+            formatted_fields = []
+            for key, value in item_dict.items():
+                if value:
+                    field_name = field_mapping.get(key, key.capitalize())
+                    formatted_fields.append(f"{field_name}: {value}")
+            return "<br>".join(formatted_fields)
     
     def _generate_actions_table_html(self, actions: list, is_urgent: bool = False) -> str:
         """Generate HTML table for actions"""
