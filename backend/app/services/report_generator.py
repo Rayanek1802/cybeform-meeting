@@ -356,8 +356,21 @@ class ReportGenerator:
     
     def _add_section(self, doc: Document, title: str, content, content_type: str = "list"):
         """Add a content section with enhanced formatting for dictionary-like content"""
-        # Add title
-        doc.add_heading(title, level=1)
+        # Add title with improved styling
+        heading = doc.add_heading(title, level=1)
+        
+        # Style the heading
+        heading_format = heading.runs[0].font if heading.runs else None
+        if heading_format:
+            heading_format.color.rgb = RGBColor(79, 70, 229)  # Primary color
+            heading_format.size = Pt(16)
+            
+        # Add a subtle separator line
+        separator = doc.add_paragraph()
+        separator_run = separator.add_run("━" * 50)
+        separator_run.font.color.rgb = RGBColor(226, 232, 240)  # Light gray
+        separator_run.font.size = Pt(8)
+        separator.space_after = Pt(12)
         
         if content_type == "dict":
             # Handle dictionary content (meta info)
@@ -398,21 +411,46 @@ class ReportGenerator:
             
             # Display structured items in a table if found
             if structured_items:
-                self._add_structured_table(doc, structured_items)
+                self._add_structured_table(doc, structured_items, title)
             
-            # Display simple items as bullet points
+            # Display simple items as enhanced bullet points
             if simple_items:
-                if structured_items:  # Add separator if we have both types
-                    doc.add_paragraph()
-                    sub_heading = doc.add_paragraph("Autres éléments:")
-                    sub_heading.runs[0].font.bold = True
-                    sub_heading.runs[0].font.color.rgb = self.brand_secondary
+                if structured_items:  # Add visual separator if we have both types
+                    self._add_visual_separator(doc, "Autres éléments")
                 
                 for item in simple_items:
-                    para = doc.add_paragraph(str(item), style='List Bullet')
-                    para.runs[0].font.size = Pt(11)
+                    para = doc.add_paragraph()
+                    # Add custom bullet with emoji
+                    bullet_run = para.add_run("• ")
+                    bullet_run.font.color.rgb = RGBColor(16, 185, 129)  # Green
+                    bullet_run.font.size = Pt(14)
+                    bullet_run.font.bold = True
+                    
+                    # Add content
+                    content_run = para.add_run(str(item))
+                    content_run.font.size = Pt(11)
+                    content_run.font.color.rgb = RGBColor(51, 65, 85)  # Dark gray
+                    
+                    # Add some spacing
+                    para.space_after = Pt(6)
         
         doc.add_paragraph()  # Add spacing
+    
+    def _add_visual_separator(self, doc: Document, text: str):
+        """Add a visual separator with text"""
+        separator_para = doc.add_paragraph()
+        separator_para.space_before = Pt(12)
+        separator_para.space_after = Pt(8)
+        
+        # Add icon
+        icon_run = separator_para.add_run("📋 ")
+        icon_run.font.size = Pt(12)
+        
+        # Add text
+        text_run = separator_para.add_run(text)
+        text_run.font.bold = True
+        text_run.font.color.rgb = RGBColor(124, 58, 237)  # Secondary color
+        text_run.font.size = Pt(12)
     
     def _is_dict_like_string(self, text: str) -> bool:
         """Check if a string contains dictionary-like content"""
@@ -504,7 +542,7 @@ class ReportGenerator:
         
         return parsed_dict
     
-    def _add_structured_table(self, doc: Document, structured_items: list):
+    def _add_structured_table(self, doc: Document, structured_items: list, title: str):
         """Add a table for structured dictionary-like items"""
         if not structured_items:
             return
@@ -554,81 +592,243 @@ class ReportGenerator:
             if key not in ordered_keys:
                 ordered_keys.append(key)
         
-        # Create table
+        # Create enhanced table with professional styling
         num_cols = min(len(ordered_keys), 4)  # Limit to 4 columns for readability
         table = doc.add_table(rows=1, cols=num_cols)
-        table.style = 'Table Grid'
+        
+        # Apply modern table style
+        table.style = 'Light Grid Accent 1'
         table.allow_autofit = False  # Disable autofit to allow custom column widths
         
-        # Set column widths to prevent truncation
+        # Enhanced column width distribution for better readability
         from docx.shared import Inches
-        if num_cols >= 1:
-            table.columns[0].width = Inches(3.5)  # Main content column - wider
-        if num_cols >= 2:
-            table.columns[1].width = Inches(2.0)  # Context column
-        if num_cols >= 3:
-            table.columns[2].width = Inches(1.2)  # Time column
-        if num_cols >= 4:
-            table.columns[3].width = Inches(1.0)  # Additional column
+        total_width = 7.5  # Total page width minus margins
+        if num_cols == 1:
+            table.columns[0].width = Inches(total_width)
+        elif num_cols == 2:
+            table.columns[0].width = Inches(total_width * 0.7)  # Main content
+            table.columns[1].width = Inches(total_width * 0.3)  # Context/Time
+        elif num_cols == 3:
+            table.columns[0].width = Inches(total_width * 0.5)  # Main content
+            table.columns[1].width = Inches(total_width * 0.3)  # Context
+            table.columns[2].width = Inches(total_width * 0.2)  # Time
+        elif num_cols >= 4:
+            table.columns[0].width = Inches(total_width * 0.4)  # Main content
+            table.columns[1].width = Inches(total_width * 0.25)  # Context
+            table.columns[2].width = Inches(total_width * 0.2)   # Time
+            table.columns[3].width = Inches(total_width * 0.15)  # Additional
         
-        # Header row
+        # Enhanced header row with modern styling
         header_cells = table.rows[0].cells
         for i, key in enumerate(ordered_keys[:num_cols]):
-            header_cells[i].text = key_mappings.get(key, key.title())
-            header_cells[i].paragraphs[0].runs[0].font.bold = True
-            header_cells[i].paragraphs[0].runs[0].font.color.rgb = self.brand_primary
-            header_cells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            # Set header text with icon
+            header_text = key_mappings.get(key, key.title())
             
-            # Add light background to header
+            # Add contextual icons to headers
+            icon_mapping = {
+                'Décision': '🎯 ',
+                'Détail': '🔧 ',
+                'Risque': '⚠️ ',
+                'Recommandation': '💡 ',
+                'Point': '📌 ',
+                'Participant': '👤 ',
+                'Contexte': '📝 ',
+                'Temps': '⏱️ ',
+                'Action': '✅ ',
+                'Tâche': '📋 '
+            }
+            
+            icon = icon_mapping.get(header_text, '📊 ')
+            header_cells[i].text = f"{icon}{header_text}"
+            
+            # Enhanced header formatting
+            header_para = header_cells[i].paragraphs[0]
+            header_run = header_para.runs[0]
+            header_run.font.bold = True
+            header_run.font.color.rgb = RGBColor(255, 255, 255)  # White text
+            header_run.font.size = Pt(11)
+            header_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            
+            # Professional header background
             try:
                 from docx.oxml.shared import qn
+                from docx.oxml.parser import parse_xml
+                from docx.oxml.ns import nsdecls
+                
                 tcPr = header_cells[i]._tc.get_or_add_tcPr()
-                shd = tcPr.find(qn('w:shd'))
-                if shd is None:
-                    from docx.oxml.parser import parse_xml
-                    from docx.oxml.ns import nsdecls
-                    shd = parse_xml(r'<w:shd {} w:fill="E0E7FF"/>'.format(nsdecls('w')))
-                    tcPr.append(shd)
+                # Gradient-like effect with brand primary color
+                shd = parse_xml(r'<w:shd {} w:fill="4F46E5"/>'.format(nsdecls('w')))
+                tcPr.append(shd)
+                
+                # Add padding to header cells
+                tcMar = tcPr.find(qn('w:tcMar'))
+                if tcMar is None:
+                    tcMar = parse_xml(r'<w:tcMar {}><w:top w:w="120" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>'.format(nsdecls('w')))
+                    tcPr.append(tcMar)
             except:
-                pass
+                # Fallback styling
+                header_run.font.color.rgb = self.brand_primary
         
-        # Data rows
-        for item in structured_items:
+        # Enhanced data rows with modern styling
+        for row_idx, item in enumerate(structured_items):
             row_cells = table.add_row().cells
+            
+            # Add subtle alternating row colors
+            is_even_row = row_idx % 2 == 0
+            
             for i, key in enumerate(ordered_keys[:num_cols]):
                 value = item.get(key, '')
                 
-                # Format temporal context
+                # Format temporal context with improved parsing
                 if key == 'contexteTemporel' and value:
-                    # Extract time from patterns like [00:00-16:07]
                     import re
-                    time_match = re.search(r'\[(\d{2}:\d{2})-(\d{2}:\d{2})\]', value)
-                    if time_match:
-                        value = f"{time_match.group(1)} - {time_match.group(2)}"
+                    # Handle multiple time formats
+                    time_patterns = [
+                        r'\[(\d{2}:\d{2})-(\d{2}:\d{2})\]',  # [00:00-16:07]
+                        r'(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})',  # 00:00 - 16:07
+                        r'(\d{2}:\d{2})',  # 00:00
+                    ]
+                    
+                    for pattern in time_patterns:
+                        time_match = re.search(pattern, str(value))
+                        if time_match:
+                            if len(time_match.groups()) == 2:
+                                value = f"{time_match.group(1)} - {time_match.group(2)}"
+                            else:
+                                value = time_match.group(1)
+                            break
                 
-                row_cells[i].text = str(value)
-                row_cells[i].paragraphs[0].runs[0].font.size = Pt(10)
+                # Enhanced cell content formatting
+                cell_para = row_cells[i].paragraphs[0]
+                cell_para.clear()  # Clear existing content
                 
-                # Enable text wrapping in cells
-                row_cells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+                # Add formatted content
+                if value:
+                    cell_run = cell_para.add_run(str(value))
+                    cell_run.font.size = Pt(10)
+                    
+                    # Style based on column type
+                    if i == 0:  # Main content column
+                        cell_run.font.bold = True
+                        cell_run.font.color.rgb = RGBColor(31, 41, 55)  # Dark gray
+                        cell_run.font.size = Pt(11)
+                    elif key == 'context' or key == 'contexte':  # Context column
+                        cell_run.font.italic = True
+                        cell_run.font.color.rgb = RGBColor(107, 114, 128)  # Medium gray
+                    elif key == 'contexteTemporel':  # Time column
+                        cell_run.font.color.rgb = RGBColor(79, 70, 229)  # Brand color
+                        cell_run.font.size = Pt(9)
+                    else:
+                        cell_run.font.color.rgb = RGBColor(75, 85, 99)  # Gray
                 
-                # Set cell properties for text wrapping
+                # Enhanced cell alignment and spacing
+                cell_para.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+                cell_para.space_before = Pt(4)
+                cell_para.space_after = Pt(4)
+                
+                # Advanced cell properties for better presentation
                 try:
                     from docx.oxml.shared import qn
                     from docx.oxml import OxmlElement
+                    from docx.oxml.parser import parse_xml
+                    from docx.oxml.ns import nsdecls
+                    
                     tcPr = row_cells[i]._tc.get_or_add_tcPr()
-                    # Enable text wrapping
+                    
+                    # Enable proper text wrapping
                     tcW = tcPr.find(qn('w:tcW'))
                     if tcW is None:
                         tcW = OxmlElement(qn('w:tcW'))
                         tcW.set(qn('w:type'), 'auto')
                         tcPr.append(tcW)
-                except:
-                    pass  # Skip if XML manipulation fails
+                    
+                    # Add subtle alternating row backgrounds
+                    if is_even_row:
+                        shd = tcPr.find(qn('w:shd'))
+                        if shd is None:
+                            shd = parse_xml(r'<w:shd {} w:fill="F8FAFC"/>'.format(nsdecls('w')))
+                            tcPr.append(shd)
+                    
+                    # Add cell padding for better readability
+                    tcMar = tcPr.find(qn('w:tcMar'))
+                    if tcMar is None:
+                        tcMar = parse_xml(r'<w:tcMar {}><w:top w:w="100" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tcMar>'.format(nsdecls('w')))
+                        tcPr.append(tcMar)
+                        
+                    # Set vertical alignment to top for better multi-line content
+                    vAlign = tcPr.find(qn('w:vAlign'))
+                    if vAlign is None:
+                        vAlign = OxmlElement(qn('w:vAlign'))
+                        vAlign.set(qn('w:val'), 'top')
+                        tcPr.append(vAlign)
+                        
+                except Exception:
+                    pass  # Continue if XML manipulation fails
+        
+        # Add visual summary section after table for better readability
+        if len(structured_items) > 0:
+            self._add_section_summary(doc, structured_items, title)
+    
+    def _add_section_summary(self, doc: Document, items: List[Dict], section_title: str):
+        """Add a visual summary with key highlights and bullet points"""
+        # Add spacing before summary
+        doc.add_paragraph()
+        
+        # Add summary header
+        summary_header = doc.add_paragraph()
+        summary_header.add_run("💡 ").font.size = Pt(12)
+        summary_run = summary_header.add_run(f"Résumé - {section_title}")
+        summary_run.font.bold = True
+        summary_run.font.color.rgb = RGBColor(124, 58, 237)
+        summary_run.font.size = Pt(11)
+        summary_header.space_before = Pt(8)
+        summary_header.space_after = Pt(6)
+        
+        # Create key insights as bullet points (max 3)
+        key_items = items[:3] if len(items) > 3 else items
+        
+        for item in key_items:
+            bullet_para = doc.add_paragraph(style='List Bullet')
+            
+            # Get main content (decision, detail, etc.)
+            main_content = ""
+            for key in ['decision', 'detail', 'risk', 'recommendation', 'point']:
+                if key in item and item[key]:
+                    main_content = item[key]
+                    break
+            
+            if main_content:
+                # Truncate long content for summary
+                if len(main_content) > 100:
+                    main_content = main_content[:97] + "..."
                 
-                # Highlight main content column
-                if i == 0:
-                    row_cells[i].paragraphs[0].runs[0].font.bold = True
+                # Add bullet point with highlighting
+                bullet_run = bullet_para.add_run(f"• ")
+                bullet_run.font.color.rgb = RGBColor(34, 197, 94)  # Green bullet
+                bullet_run.font.bold = True
+                bullet_run.font.size = Pt(12)
+                
+                content_run = bullet_para.add_run(main_content)
+                content_run.font.size = Pt(10)
+                content_run.font.color.rgb = RGBColor(55, 65, 81)
+                
+                # Add context if available
+                if 'context' in item and item['context']:
+                    context_run = bullet_para.add_run(f" ({item['context']})")
+                    context_run.font.italic = True
+                    context_run.font.color.rgb = RGBColor(107, 114, 128)
+                    context_run.font.size = Pt(9)
+                
+                bullet_para.space_after = Pt(4)
+        
+        # Add count summary
+        if len(items) > 3:
+            more_para = doc.add_paragraph()
+            more_run = more_para.add_run(f"... et {len(items) - 3} autres éléments (voir tableau détaillé ci-dessus)")
+            more_run.font.italic = True
+            more_run.font.color.rgb = RGBColor(107, 114, 128)
+            more_run.font.size = Pt(9)
+            more_para.space_after = Pt(12)
     
     def _add_actions_table(self, doc: Document, actions: List[Dict[str, Any]], title: str = "5. Plan d'actions"):
         """Add enhanced actions table with full information"""
@@ -854,22 +1054,238 @@ class ReportGenerator:
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Rapport de Réunion - {meta.get('meetingTitle', 'Réunion')}</title>
                 <style>
-                    body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background: #f8fafc; }}
-                    .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                    .header {{ text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4F46E5; padding-bottom: 20px; }}
-                    .brand {{ color: #4F46E5; font-size: 24px; font-weight: bold; margin-bottom: 10px; }}
-                    .subtitle {{ color: #7C3AED; font-size: 18px; margin-bottom: 20px; }}
-                    .meta-info {{ background: #f1f5f9; padding: 15px; border-radius: 6px; margin-bottom: 25px; }}
-                    .meta-info div {{ margin-bottom: 5px; }}
-                    h1 {{ color: #4F46E5; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }}
-                    h2 {{ color: #7C3AED; margin-top: 25px; }}
-                    .section {{ margin-bottom: 20px; }}
-                    ul {{ padding-left: 20px; }}
-                    li {{ margin-bottom: 5px; }}
-                    table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
-                    th, td {{ border: 1px solid #e2e8f0; padding: 10px; text-align: left; }}
-                    th {{ background: #f8fafc; font-weight: bold; color: #4F46E5; }}
-                    .empty-section {{ color: #64748b; font-style: italic; }}
+                    /* Modern CSS Variables */
+                    :root {{
+                        --primary-color: #4F46E5;
+                        --secondary-color: #7C3AED;
+                        --accent-color: #06B6D4;
+                        --success-color: #10B981;
+                        --warning-color: #F59E0B;
+                        --error-color: #EF4444;
+                        --gray-50: #F8FAFC;
+                        --gray-100: #F1F5F9;
+                        --gray-200: #E2E8F0;
+                        --gray-600: #475569;
+                        --gray-700: #334155;
+                        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                        --border-radius: 0.75rem;
+                    }}
+
+                    /* Base Styles */
+                    * {{ box-sizing: border-box; }}
+                    body {{ 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+                        line-height: 1.7;
+                        margin: 0;
+                        padding: 2rem;
+                        background: linear-gradient(135deg, var(--gray-50) 0%, #e0e7ff 100%);
+                        color: var(--gray-700);
+                        font-size: 15px;
+                    }}
+
+                    /* Main Container */
+                    .container {{ 
+                        max-width: 900px;
+                        margin: 0 auto;
+                        background: white;
+                        padding: 2.5rem;
+                        border-radius: var(--border-radius);
+                        box-shadow: var(--shadow-lg);
+                        border: 1px solid var(--gray-200);
+                    }}
+
+                    /* Header */
+                    .header {{ 
+                        text-align: center;
+                        margin-bottom: 2.5rem;
+                        padding-bottom: 1.5rem;
+                        position: relative;
+                    }}
+                    .header::after {{
+                        content: '';
+                        position: absolute;
+                        bottom: 0;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 100px;
+                        height: 4px;
+                        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+                        border-radius: 2px;
+                    }}
+                    .brand {{ 
+                        color: var(--primary-color);
+                        font-size: 2rem;
+                        font-weight: 800;
+                        margin-bottom: 0.5rem;
+                        letter-spacing: -0.025em;
+                    }}
+                    .subtitle {{ 
+                        color: var(--secondary-color);
+                        font-size: 1.25rem;
+                        font-weight: 500;
+                        margin-bottom: 1rem;
+                    }}
+
+                    /* Meta Information */
+                    .meta-info {{ 
+                        background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
+                        padding: 1.5rem;
+                        border-radius: calc(var(--border-radius) - 0.25rem);
+                        margin-bottom: 2rem;
+                        border: 1px solid var(--gray-200);
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                        gap: 1rem;
+                    }}
+                    .meta-info div {{ 
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        color: var(--gray-600);
+                        font-weight: 500;
+                    }}
+
+                    /* Typography */
+                    h1 {{ 
+                        color: var(--primary-color);
+                        font-size: 1.875rem;
+                        font-weight: 700;
+                        margin: 2rem 0 1.5rem 0;
+                        padding-bottom: 0.75rem;
+                        border-bottom: 2px solid var(--gray-200);
+                        letter-spacing: -0.025em;
+                    }}
+                    h2 {{ 
+                        color: var(--secondary-color);
+                        font-size: 1.5rem;
+                        font-weight: 600;
+                        margin: 2rem 0 1rem 0;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.75rem;
+                        letter-spacing: -0.025em;
+                    }}
+                    h2::before {{
+                        content: '';
+                        width: 4px;
+                        height: 2rem;
+                        background: linear-gradient(180deg, var(--secondary-color), var(--accent-color));
+                        border-radius: 2px;
+                    }}
+
+                    /* Sections */
+                    .section {{ 
+                        margin-bottom: 2rem;
+                        background: white;
+                        border-radius: calc(var(--border-radius) - 0.25rem);
+                        overflow: hidden;
+                    }}
+                    .section-content {{ 
+                        background: var(--gray-50);
+                        padding: 1.5rem;
+                        border-radius: calc(var(--border-radius) - 0.25rem);
+                        border: 1px solid var(--gray-200);
+                    }}
+
+                    /* Lists */
+                    ul {{ 
+                        padding-left: 0;
+                        list-style: none;
+                    }}
+                    li {{ 
+                        margin-bottom: 1rem;
+                        padding: 1rem 1.25rem;
+                        background: white;
+                        border-radius: calc(var(--border-radius) - 0.5rem);
+                        border: 1px solid var(--gray-200);
+                        box-shadow: var(--shadow-sm);
+                        transition: all 0.2s ease;
+                        position: relative;
+                        padding-left: 2.5rem;
+                    }}
+                    li::before {{
+                        content: '✓';
+                        position: absolute;
+                        left: 1rem;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        color: var(--success-color);
+                        font-weight: bold;
+                        font-size: 1rem;
+                    }}
+                    li:hover {{
+                        transform: translateY(-1px);
+                        box-shadow: var(--shadow-md);
+                        border-color: var(--primary-color);
+                    }}
+
+                    /* Tables */
+                    table {{ 
+                        width: 100%;
+                        border-collapse: separate;
+                        border-spacing: 0;
+                        margin: 1.5rem 0;
+                        border-radius: calc(var(--border-radius) - 0.25rem);
+                        overflow: hidden;
+                        box-shadow: var(--shadow-sm);
+                        border: 1px solid var(--gray-200);
+                    }}
+                    th {{ 
+                        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+                        color: white;
+                        padding: 1rem;
+                        text-align: left;
+                        font-weight: 600;
+                        font-size: 0.875rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                    }}
+                    td {{ 
+                        border: none;
+                        border-bottom: 1px solid var(--gray-200);
+                        padding: 1rem;
+                        vertical-align: top;
+                        background: white;
+                    }}
+                    tr:nth-child(even) td {{
+                        background: var(--gray-50);
+                    }}
+                    tr:hover td {{
+                        background: #e0f2fe;
+                    }}
+
+                    /* Special Styles */
+                    .empty-section {{ 
+                        color: var(--gray-600);
+                        font-style: italic;
+                        text-align: center;
+                        padding: 2rem;
+                        background: var(--gray-50);
+                        border-radius: calc(var(--border-radius) - 0.5rem);
+                    }}
+
+                    /* Strong and Emphasis */
+                    strong {{
+                        color: var(--gray-700);
+                        font-weight: 700;
+                    }}
+                    em {{
+                        color: var(--gray-600);
+                        font-style: italic;
+                    }}
+
+                    /* Responsive Design */
+                    @media (max-width: 768px) {{
+                        body {{ padding: 1rem; }}
+                        .container {{ padding: 1.5rem; }}
+                        .brand {{ font-size: 1.5rem; }}
+                        .subtitle {{ font-size: 1.125rem; }}
+                        h1 {{ font-size: 1.5rem; }}
+                        h2 {{ font-size: 1.25rem; }}
+                        .meta-info {{ grid-template-columns: 1fr; }}
+                    }}
                 </style>
             </head>
             <body>
@@ -972,13 +1388,28 @@ class ReportGenerator:
         # Add any custom sections not in the predefined list
         for section_key, content in sections_data.items():
             if section_key not in section_mappings and content:
-                custom_title = section_key.replace('_', ' ').title()
+                custom_title = self._format_section_title(section_key)
                 html += f'<div class="section"><h2 style="color: #7C3AED; margin-top: 25px; border-left: 4px solid #7C3AED; padding-left: 15px;">{custom_title}</h2>'
                 html += '<div class="section-content" style="background: #fafafa; padding: 15px; border-radius: 6px;">'
                 html += self._generate_list_html(content)
                 html += '</div></div>'
         
         return html
+    
+    def _format_section_title(self, section_key: str) -> str:
+        """Format section key to readable title (handles camelCase and snake_case)"""
+        import re
+        
+        # First replace underscores with spaces
+        title = section_key.replace('_', ' ')
+        
+        # Then split camelCase - insert space before uppercase letters
+        title = re.sub(r'([a-z])([A-Z])', r'\1 \2', title)
+        
+        # Convert to title case
+        title = title.title()
+        
+        return title
     
     def _generate_legacy_sections_html(self, analysis_data: Dict[str, Any]) -> str:
         """Generate HTML for legacy format"""
