@@ -229,10 +229,10 @@ const ReportFormatter: React.FC<ReportFormatterProps> = ({ htmlContent }) => {
         
         return (
           <Card key={index} className="border border-gray-200 shadow-sm bg-white">
-            <CardHeader className="border-b-2 border-gray-100 bg-white">
-              <CardTitle className="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-4">
+            <CardHeader className="bg-white">
+              <CardTitle className="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-4 flex items-center justify-between">
                 {section.title}
-                <Badge variant="outline" className="ml-auto text-gray-600 border-gray-300">
+                <Badge variant="outline" className="text-gray-600 border-gray-300">
                   {section.data.length} élément{section.data.length > 1 ? 's' : ''}
                 </Badge>
               </CardTitle>
