@@ -228,14 +228,11 @@ const ReportFormatter: React.FC<ReportFormatterProps> = ({ htmlContent }) => {
         const Icon = section.icon
         
         return (
-          <Card key={index} className={`border-2 border-gray-100 shadow-lg ${section.bgColor}/30`}>
-            <CardHeader className={`${section.bgColor} border-b-2 border-gray-100`}>
-              <CardTitle className={`flex items-center gap-3 ${section.textColor} text-lg font-bold`}>
-                <div className={`p-2 rounded-lg bg-gradient-to-r ${section.color} text-white shadow-md`}>
-                  <Icon className="h-5 w-5" />
-                </div>
+          <Card key={index} className="border border-gray-200 shadow-sm bg-white">
+            <CardHeader className="border-b-2 border-gray-100 bg-white">
+              <CardTitle className="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-4">
                 {section.title}
-                <Badge variant="outline" className={`ml-auto ${section.textColor} border-current`}>
+                <Badge variant="outline" className="ml-auto text-gray-600 border-gray-300">
                   {section.data.length} élément{section.data.length > 1 ? 's' : ''}
                 </Badge>
               </CardTitle>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw, Search } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { Button } from '../components/ui/button'
@@ -143,6 +143,12 @@ const MeetingDetail: React.FC = () => {
     }
   }
 
+  // Filter transcript based on search term
+  const filteredTranscript = preview?.transcript?.filter(segment =>
+    segment.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    segment.speaker.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || []
+
   const getBadgeVariant = (stage: string) => {
     switch (stage) {
       case 'done':
@@ -199,7 +205,7 @@ const MeetingDetail: React.FC = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header Section */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to={`/projects/${projectId}`}>
@@ -212,7 +218,7 @@ const MeetingDetail: React.FC = () => {
                 {meeting?.title || 'Meeting Detail'}
               </h1>
               {meeting && (
-                <p className="text-gray-600">
+                <p className="text-gray-600 mt-1">
                   {formatDate(meeting.date)} • {meeting.duration ? formatDuration(meeting.duration) : 'Durée inconnue'}
                 </p>
               )}
@@ -273,18 +279,19 @@ const MeetingDetail: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="space-y-6"
           >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="report">Rapport</TabsTrigger>
                 <TabsTrigger value="transcript">Transcription</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="report" className="space-y-0">
+              <TabsContent value="report" className="mt-6">
                 <ReportFormatter htmlContent={preview.report_html} />
               </TabsContent>
               
-              <TabsContent value="transcript" className="space-y-0">
+              <TabsContent value="transcript" className="mt-6">
                 <Card className="border-gray-200">
                   <CardHeader>
                     <div className="flex items-center justify-between">
