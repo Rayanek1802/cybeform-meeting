@@ -1501,16 +1501,16 @@ class ReportGenerator:
     
     def _generate_chronological_html(self, chronological_data: list) -> str:
         """Generate HTML for chronological view"""
-        html = '<div class="section" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 25px;"><h2 style="color: white; border-left: 4px solid white; padding-left: 15px;">Vue chronologique de la réunion</h2>'
+        html = '<div class="section" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 25px; overflow: hidden;"><h2 style="color: #7C3AED; margin: 0; padding: 15px 20px; border-left: 4px solid #7C3AED; background: white; border-bottom: 1px solid #e2e8f0;">Vue chronologique de la réunion</h2>'
         
         if chronological_data:
-            html += "<ul style='padding-left: 20px;'>"
+            html += "<div style='padding: 20px;'><ul style='margin: 0; padding-left: 20px; list-style-type: disc;'>"
             for event in chronological_data:
                 if event and not event.startswith("/*"):
-                    html += f"<li style='margin-bottom: 8px; line-height: 1.4;'>{event}</li>"
-            html += "</ul>"
+                    html += f"<li style='margin-bottom: 10px; line-height: 1.6; color: #374151; padding: 8px 0; word-wrap: break-word;'>{event}</li>"
+            html += "</ul></div>"
         else:
-            html += '<div style="text-align: center; padding: 20px;">Aucune information chronologique.</div>'
+            html += '<div style="text-align: center; padding: 20px; color: #6B7280; font-style: italic;">Aucune information chronologique.</div>'
         
         html += "</div>"
         return html
