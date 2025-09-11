@@ -225,10 +225,8 @@ const ReportFormatter: React.FC<ReportFormatterProps> = ({ htmlContent }) => {
       {sections.map((section, index) => {
         if (!section.data || section.data.length === 0) return null
         
-        const Icon = section.icon
-        
         return (
-          <Card key={index} className="border border-gray-200 shadow-sm bg-white">
+          <Card key={index} className="border border-gray-200 shadow-sm bg-white relative z-0">
             <CardHeader className="bg-white">
               <CardTitle className="text-lg font-bold text-gray-800 border-l-4 border-blue-600 pl-4 flex items-center justify-between">
                 {section.title}

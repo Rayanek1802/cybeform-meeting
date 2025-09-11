@@ -204,7 +204,7 @@ const MeetingDetail: React.FC = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 relative z-0">
         {/* Header Section */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -281,7 +281,7 @@ const MeetingDetail: React.FC = () => {
             transition={{ duration: 0.5 }}
             className="space-y-6"
           >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 relative z-0">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="report">Rapport</TabsTrigger>
                 <TabsTrigger value="transcript">Transcription</TabsTrigger>
