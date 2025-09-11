@@ -442,10 +442,6 @@ class ReportGenerator:
         separator_para.space_before = Pt(12)
         separator_para.space_after = Pt(8)
         
-        # Add icon
-        icon_run = separator_para.add_run("📋 ")
-        icon_run.font.size = Pt(12)
-        
         # Add text
         text_run = separator_para.add_run(text)
         text_run.font.bold = True
@@ -624,22 +620,8 @@ class ReportGenerator:
             # Set header text with icon
             header_text = key_mappings.get(key, key.title())
             
-            # Add contextual icons to headers
-            icon_mapping = {
-                'Décision': '🎯 ',
-                'Détail': '🔧 ',
-                'Risque': '⚠️ ',
-                'Recommandation': '💡 ',
-                'Point': '📌 ',
-                'Participant': '👤 ',
-                'Contexte': '📝 ',
-                'Temps': '⏱️ ',
-                'Action': '✅ ',
-                'Tâche': '📋 '
-            }
-            
-            icon = icon_mapping.get(header_text, '📊 ')
-            header_cells[i].text = f"{icon}{header_text}"
+            # Set header text without icons for professional look
+            header_cells[i].text = header_text
             
             # Enhanced header formatting
             header_para = header_cells[i].paragraphs[0]
@@ -765,70 +747,7 @@ class ReportGenerator:
                 except Exception:
                     pass  # Continue if XML manipulation fails
         
-        # Add visual summary section after table for better readability
-        if len(structured_items) > 0:
-            self._add_section_summary(doc, structured_items, title)
     
-    def _add_section_summary(self, doc: Document, items: List[Dict], section_title: str):
-        """Add a visual summary with key highlights and bullet points"""
-        # Add spacing before summary
-        doc.add_paragraph()
-        
-        # Add summary header
-        summary_header = doc.add_paragraph()
-        summary_header.add_run("💡 ").font.size = Pt(12)
-        summary_run = summary_header.add_run(f"Résumé - {section_title}")
-        summary_run.font.bold = True
-        summary_run.font.color.rgb = RGBColor(124, 58, 237)
-        summary_run.font.size = Pt(11)
-        summary_header.space_before = Pt(8)
-        summary_header.space_after = Pt(6)
-        
-        # Create key insights as bullet points (max 3)
-        key_items = items[:3] if len(items) > 3 else items
-        
-        for item in key_items:
-            bullet_para = doc.add_paragraph(style='List Bullet')
-            
-            # Get main content (decision, detail, etc.)
-            main_content = ""
-            for key in ['decision', 'detail', 'risk', 'recommendation', 'point']:
-                if key in item and item[key]:
-                    main_content = item[key]
-                    break
-            
-            if main_content:
-                # Truncate long content for summary
-                if len(main_content) > 100:
-                    main_content = main_content[:97] + "..."
-                
-                # Add bullet point with highlighting
-                bullet_run = bullet_para.add_run(f"• ")
-                bullet_run.font.color.rgb = RGBColor(34, 197, 94)  # Green bullet
-                bullet_run.font.bold = True
-                bullet_run.font.size = Pt(12)
-                
-                content_run = bullet_para.add_run(main_content)
-                content_run.font.size = Pt(10)
-                content_run.font.color.rgb = RGBColor(55, 65, 81)
-                
-                # Add context if available
-                if 'context' in item and item['context']:
-                    context_run = bullet_para.add_run(f" ({item['context']})")
-                    context_run.font.italic = True
-                    context_run.font.color.rgb = RGBColor(107, 114, 128)
-                    context_run.font.size = Pt(9)
-                
-                bullet_para.space_after = Pt(4)
-        
-        # Add count summary
-        if len(items) > 3:
-            more_para = doc.add_paragraph()
-            more_run = more_para.add_run(f"... et {len(items) - 3} autres éléments (voir tableau détaillé ci-dessus)")
-            more_run.font.italic = True
-            more_run.font.color.rgb = RGBColor(107, 114, 128)
-            more_run.font.size = Pt(9)
-            more_para.space_after = Pt(12)
     
     def _add_actions_table(self, doc: Document, actions: List[Dict[str, Any]], title: str = "5. Plan d'actions"):
         """Add enhanced actions table with full information"""
