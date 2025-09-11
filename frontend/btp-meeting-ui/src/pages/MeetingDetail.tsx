@@ -274,7 +274,7 @@ const MeetingDetail: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="report">Rapport</TabsTrigger>
                 <TabsTrigger value="transcript">Transcription</TabsTrigger>

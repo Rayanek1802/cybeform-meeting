@@ -221,7 +221,7 @@ const ReportFormatter: React.FC<ReportFormatterProps> = ({ htmlContent }) => {
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {sections.map((section, index) => {
         if (!section.data || section.data.length === 0) return null
         
